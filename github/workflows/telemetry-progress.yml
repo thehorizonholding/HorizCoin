@@ -1,0 +1,184 @@
+name: Telemetry Progress (Daily)
+
+on:
+  schedule:
+    - cron: "0 3 * * *"
+  workflow_dispatch:
+    inputs:
+      append_line:
+        description: "Optional progress log message to append (message only, date auto-added)."
+        required: false
+        type: string
+      entries:
+        description: "Number of recent progress entries to summarize."
+        required: false
+        default: "10"
+        type: string
+      strict:
+        description: "Set to true to fail on malformed lines. (Default warn mode = false)"
+        required: false
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
+
+permissions:
+  contents: write
+
+env:
+  PROGRESS_DOC: docs/telemetry-initiative-execution.md
+
+concurrency:
+  group: telemetry-progress
+  cancel-in-progress: true
+
+jobs:
+  progress:
+    name: Parse & Summarize Progress
+    runs-on: ubuntu-latest
+    if: |
+      github.event_name != 'schedule' ||
+      (github.event_name == 'schedule' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch))
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Optionally append new progress entry
+        if: ${{ github.event.inputs.append_line != '' }}
+        env:
+          APPEND_LINE: ${{ github.event.inputs.append_line }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          DATE_UTC=$(date -u +'%Y-%m-%d')
+          LINE="- ${DATE_UTC} - ${APPEND_LINE}"
+          echo "Prepared line: $LINE"
+          if [ ! -f "$PROGRESS_DOC" ]; then
+            echo "Progress document not found: $PROGRESS_DOC" >&2
+            exit 1
+          fi
+          if grep -Fxq "$LINE" "$PROGRESS_DOC"; then
+            echo "Line already present; skipping."
+          else
+            sed -i -e '$a\' "$PROGRESS_DOC"
+            echo "$LINE" >> "$PROGRESS_DOC"
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add "$PROGRESS_DOC"
+            git commit -m "chore(progress): append progress entry"
+            git push
+          fi
+
+      - name: Extract progress section
+        id: extract
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ ! -f "$PROGRESS_DOC" ]; then
+            echo "Progress document not found: $PROGRESS_DOC" >&2
+            exit 1
+          fi
+          awk '/^##[[:space:]]+Progress Log/{flag=1;next} flag{print}' "$PROGRESS_DOC" > _progress_raw.txt || true
+          echo "Raw extracted (first 120 lines or fewer):"
+          sed -n '1,120p' _progress_raw.txt || true
+          grep -E '^- [0-9]{4}-[0-9]{2}-[0-9]{2} - ' _progress_raw.txt > _progress_valid.txt || true
+          grep -E '^- ' _progress_raw.txt | grep -vE '^- [0-9]{4}-[0-9]{2}-[0-9]{2} - ' > _progress_malformed.txt || true
+          VALID_COUNT=$(wc -l < _progress_valid.txt | tr -d ' ' || echo 0)
+          MAL_COUNT=$(wc -l < _progress_malformed.txt | tr -d ' ' || echo 0)
+          echo "Valid lines: $VALID_COUNT"
+          echo "Malformed lines: $MAL_COUNT"
+          ENTRIES="${{ github.event.inputs.entries }}"
+          if ! echo "$ENTRIES" | grep -Eq '^[0-9]+$'; then
+            ENTRIES=10
+          fi
+          tail -n "$ENTRIES" _progress_valid.txt | tac > _recent.txt || true
+          {
+            echo "recent<<'EOF'"
+            cat _recent.txt
+            echo "EOF"
+            echo "valid_count=$VALID_COUNT"
+            echo "malformed_count=$MAL_COUNT"
+          } >> "$GITHUB_OUTPUT"
+          {
+            echo "Telemetry Progress Summary"
+            echo "Generated: $(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+            echo
+            echo "Valid entries: $VALID_COUNT"
+            echo "Malformed entries: $MAL_COUNT"
+            echo
+            echo "Most recent (up to $ENTRIES):"
+            cat _recent.txt
+            echo
+            if [ "$MAL_COUNT" -gt 0 ]; then
+              echo "Malformed lines (first 10 shown):"
+              head -n 10 _progress_malformed.txt
+            fi
+          } > progress_summary.txt
+          jq -n \
+            --arg generated "$(date -u +'%Y-%m-%dT%H:%M:%SZ')" \
+            --argjson valid "$VALID_COUNT" \
+            --argjson malformed "$MAL_COUNT" \
+            --arg entries "$ENTRIES" \
+            --argfile recent <(jq -R -s 'split(\"\\n\")[:-1]' _recent.txt 2>/dev/null || echo '[]') \
+            '{
+              generated: $generated,
+              valid_count: $valid,
+              malformed_count: $malformed,
+              recent_limit: ($entries|tonumber),
+              recent: $recent
+            }' > progress_summary.json
+          STRICT="${{ github.event.inputs.strict }}"
+          if [ "$STRICT" = "true" ] && [ "$MAL_COUNT" -gt 0 ]; then
+            echo "Strict mode enabled and malformed lines detected."
+            exit 2
+          fi
+
+      - name: Emit warnings (warn mode)
+        if: ${{ steps.extract.outputs.malformed_count != '0' && github.event.inputs.strict != 'true' }}
+        shell: bash
+        run: |
+            echo "::warning title=Malformed Progress Lines Detected::${{ steps.extract.outputs.malformed_count }} malformed progress line(s) found. See artifacts or re-run with 'strict: true' to enforce failure."
+            echo "Sample malformed:"
+            head -n 10 _progress_malformed.txt || true
+
+      - name: Placeholder - Update Meta Issue (future)
+        shell: bash
+        run: |
+          echo "Meta issue update not yet implemented. (Would PATCH issue #25 using progress_summary.json)."
+
+      - name: Upload summary artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: telemetry-progress-summary
+          path: |
+            progress_summary.txt
+            progress_summary.json
+          retention-days: 7
+
+      - name: Job Summary
+        shell: bash
+        run: |
+          {
+            echo "## Telemetry Progress Summary"
+            echo "**Valid entries:** ${{ steps.extract.outputs.valid_count }}  "
+            echo "**Malformed entries:** ${{ steps.extract.outputs.malformed_count }}  "
+            echo ""
+            echo "### Recent Entries"
+            if [ -s _recent.txt ]; then
+              sed 's/^/- /' _recent.txt
+            else
+              echo "_No recent entries found_"
+            fi
+            if [ "${{ steps.extract.outputs.malformed_count }}" != "0" ]; then
+              echo ""
+              echo "### Malformed (sample)"
+              sed 's/^/- /' _progress_malformed.txt | head -n 10
+            fi
+            echo ""
+            echo "_Mode: $([ \"${{ github.event.inputs.strict }}\" = \"true\" ] && echo 'Strict' || echo 'Warn')_"
+            echo ""
+            echo "<sub>Concurrency group: telemetry-progress</sub>"
+          } >> "$GITHUB_STEP_SUMMARY"
