@@ -1,0 +1,179 @@
+# Mobile Data Extraction Configuration
+# ⚠️ DRAFT CONFIGURATION - NOT PRODUCTION APPROVED ⚠️
+
+# Data Extraction Settings
+extraction:
+  # Collection interval in seconds
+  collection_interval: 30
+  
+  # Privacy protection level: low, medium, high
+  privacy_level: "high"
+  
+  # Maximum local storage in MB
+  max_storage_mb: 10
+  
+  # Enable geolocation context (requires explicit user consent)
+  enable_geolocation: false
+  
+  # Require user consent before data collection
+  user_consent_required: true
+  
+  # Data retention period in hours
+  data_retention_hours: 24
+
+# Network Monitoring Settings
+network:
+  # Network interfaces to monitor
+  interfaces:
+    - "wifi"
+    - "cellular"
+    - "5g"
+  
+  # Metrics to collect
+  metrics:
+    - "bytes_sent"
+    - "bytes_received"
+    - "packet_count"
+    - "connection_duration"
+    - "signal_strength"
+    - "latency"
+    - "jitter"
+  
+  # Quality monitoring thresholds
+  quality_thresholds:
+    min_signal_strength: -70  # dBm
+    max_latency_ms: 500
+    max_jitter_ms: 100
+    min_bandwidth_kbps: 100
+
+# Observability Settings
+observability:
+  # Metrics retention period in hours
+  metrics_retention_hours: 24
+  
+  # Dashboard refresh interval in seconds
+  dashboard_refresh_seconds: 30
+  
+  # Enable real-time alerting
+  enable_real_time_alerts: true
+  
+  # Maximum alerts per hour to prevent spam
+  max_alerts_per_hour: 10
+  
+  # Alert thresholds
+  alert_thresholds:
+    high_bandwidth_usage_mbps: 100
+    low_signal_strength_dbm: -80
+    high_latency_ms: 1000
+    high_error_rate_percent: 5
+
+# HorizCoin Integration Settings
+horizcoin:
+  # Enable integration with HorizCoin protocol
+  enable_integration: false  # DRAFT: Integration not yet implemented
+  
+  # Bandwidth proof submission interval in minutes
+  proof_submission_interval: 60
+  
+  # Minimum bandwidth threshold for proof validation (kbps)
+  min_bandwidth_threshold: 1000
+  
+  # Privacy-preserving aggregation settings
+  aggregation:
+    time_window_minutes: 15
+    anonymization_level: "high"
+    include_device_fingerprint: false
+
+# Security Settings
+security:
+  # Data encryption settings
+  encryption:
+    enable_at_rest: true
+    enable_in_transit: true
+    algorithm: "AES-256-GCM"
+  
+  # Access control
+  access_control:
+    require_authentication: true
+    session_timeout_minutes: 30
+    max_failed_attempts: 3
+  
+  # Audit logging
+  audit:
+    enable_logging: true
+    log_level: "INFO"
+    retention_days: 30
+
+# Platform-Specific Settings
+platforms:
+  android:
+    # Android-specific APIs and permissions
+    required_permissions:
+      - "android.permission.ACCESS_NETWORK_STATE"
+      - "android.permission.ACCESS_WIFI_STATE"
+      - "android.permission.READ_PHONE_STATE"
+    
+    # Background processing settings
+    background_processing:
+      use_foreground_service: true
+      battery_optimization_exempt: false
+  
+  ios:
+    # iOS-specific settings
+    background_processing:
+      use_background_app_refresh: true
+      network_extension_required: false
+    
+    # Privacy settings
+    privacy:
+      request_tracking_authorization: true
+      local_network_access: true
+
+# Development Settings (DRAFT ONLY)
+development:
+  # Enable debug logging
+  debug_mode: true
+  
+  # Mock data generation for testing
+  enable_mock_data: false
+  
+  # Testing endpoints
+  test_endpoints:
+    local_server: "http://localhost:8080"
+    staging_server: "https://staging.example.com"
+  
+  # Performance profiling
+  profiling:
+    enable_cpu_profiling: false
+    enable_memory_profiling: false
+    enable_network_profiling: false
+
+# Compliance Settings
+compliance:
+  # GDPR compliance settings
+  gdpr:
+    enable_compliance: true
+    data_subject_rights: true
+    consent_management: true
+    data_portability: true
+    right_to_deletion: true
+  
+  # Regional privacy regulations
+  regional:
+    ccpa_compliance: true  # California Consumer Privacy Act
+    pipeda_compliance: true  # Personal Information Protection and Electronic Documents Act (Canada)
+    lgpd_compliance: true  # Lei Geral de Proteção de Dados (Brazil)
+
+---
+# DRAFT STATUS NOTICE
+# 
+# This configuration file is a DRAFT template and contains PLACEHOLDER
+# values that are not suitable for production use. All settings require:
+# 
+# 1. Security review and audit
+# 2. Legal compliance verification
+# 3. Performance testing and validation
+# 4. User consent framework implementation
+# 5. Integration testing with HorizCoin protocol
+# 
+# DO NOT USE IN PRODUCTION ENVIRONMENTS WITHOUT PROPER REVIEW AND APPROVAL.
