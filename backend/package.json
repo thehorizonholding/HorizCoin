@@ -1,0 +1,19 @@
+{
+  "name": "horizcoin-backend",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node --watch api/server.ts",
+    "start": "node api/server.ts",
+    "lint": "echo \"add linter (eslint) later\""
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0",
+    "@types/express": "^4.17.21",
+    "ts-node": "^10.9.2"
+  }
+} 

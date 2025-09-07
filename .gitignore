@@ -1,0 +1,24 @@
+# Node
+node_modules/
+dist/
+*.log
+
+# TypeScript
+*.tsbuildinfo
+
+# OS
+.DS_Store
+
+# Foundry
+out/
+cache/
+
+# Env
+.env
+.env.local
+
+# Coverage
+coverage/
+
+# Misc
+.tmp/

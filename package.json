@@ -1,0 +1,13 @@
+{
+  "name": "horizcoin-monorepo",
+  "private": true,
+  "version": "0.0.1",
+  "workspaces": [
+    "backend"
+  ],
+  "scripts": {
+    "postinstall": "echo 'Install sub-components manually (contracts use Foundry)'",
+    "lint": "echo 'Add root lint configuration later'"
+  },
+  "license": "MIT"
+} 
