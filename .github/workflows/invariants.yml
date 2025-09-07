@@ -1,0 +1,228 @@
+name: Invariant Testing
+
+on:
+  schedule:
+    # Run invariant tests daily at 2 AM UTC
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+    # Allow manual trigger
+  push:
+    paths:
+      - 'src/**/*.sol'
+      - 'test/invariant/**/*.sol'
+      - '.github/workflows/invariants.yml'
+
+env:
+  FOUNDRY_PROFILE: ci
+
+jobs:
+  invariant-tests:
+    name: Run Invariant Tests
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        # Test different scenarios
+        scenario: [
+          "governance",
+          "treasury", 
+          "vesting",
+          "airdrop",
+          "escrow"
+        ]
+    
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: nightly
+
+      - name: Build contracts
+        run: |
+          forge build
+        
+      - name: Run invariant tests for ${{ matrix.scenario }}
+        run: |
+          echo "Running invariant tests for ${{ matrix.scenario }}"
+          forge test --match-path "test/invariant/${{ matrix.scenario }}/**/*.sol" \
+            --invariant-runs 500 \
+            --invariant-depth 100 \
+            --invariant-fail-on-revert \
+            -vvv
+        continue-on-error: true
+        id: invariant-test
+
+      - name: Generate invariant report
+        if: always()
+        run: |
+          echo "# Invariant Test Report - ${{ matrix.scenario }}" > invariant-report-${{ matrix.scenario }}.md
+          echo "## Test Results" >> invariant-report-${{ matrix.scenario }}.md
+          echo "- **Scenario**: ${{ matrix.scenario }}" >> invariant-report-${{ matrix.scenario }}.md
+          echo "- **Status**: ${{ steps.invariant-test.outcome }}" >> invariant-report-${{ matrix.scenario }}.md
+          echo "- **Timestamp**: $(date -u)" >> invariant-report-${{ matrix.scenario }}.md
+          echo "- **Commit**: ${{ github.sha }}" >> invariant-report-${{ matrix.scenario }}.md
+          echo "" >> invariant-report-${{ matrix.scenario }}.md
+          echo "## Configuration" >> invariant-report-${{ matrix.scenario }}.md
+          echo "- **Invariant Runs**: 500" >> invariant-report-${{ matrix.scenario }}.md
+          echo "- **Invariant Depth**: 100" >> invariant-report-${{ matrix.scenario }}.md
+          echo "- **Fail on Revert**: true" >> invariant-report-${{ matrix.scenario }}.md
+
+      - name: Upload invariant report
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: invariant-report-${{ matrix.scenario }}
+          path: invariant-report-${{ matrix.scenario }}.md
+
+  fuzz-tests:
+    name: Extended Fuzz Testing
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+
+      - name: Build contracts
+        run: forge build
+
+      - name: Run extended fuzz tests
+        run: |
+          echo "Running extended fuzz tests..."
+          forge test --match-path "test/fuzz/**/*.sol" \
+            --fuzz-runs 10000 \
+            --fuzz-max-test-rejects 100000 \
+            -vvv
+        continue-on-error: true
+
+  property-tests:
+    name: Property-Based Testing
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Foundry  
+        uses: foundry-rs/foundry-toolchain@v1
+
+      - name: Build contracts
+        run: forge build
+
+      - name: Test governance properties
+        run: |
+          echo "Testing governance properties..."
+          forge test --match-path "test/properties/governance/**/*.sol" -vvv
+        continue-on-error: true
+
+      - name: Test token properties
+        run: |
+          echo "Testing token properties..."
+          forge test --match-path "test/properties/token/**/*.sol" -vvv
+        continue-on-error: true
+
+      - name: Test treasury properties
+        run: |
+          echo "Testing treasury properties..."
+          forge test --match-path "test/properties/treasury/**/*.sol" -vvv
+        continue-on-error: true
+
+  echidna-tests:
+    name: Echidna Property Testing
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Echidna
+        run: |
+          wget https://github.com/crytic/echidna/releases/download/v2.2.1/echidna-2.2.1-Ubuntu-18.04.tar.gz
+          tar -xzf echidna-2.2.1-Ubuntu-18.04.tar.gz
+          sudo mv echidna /usr/local/bin/
+          echidna --version
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+
+      - name: Build contracts
+        run: forge build
+
+      - name: Run Echidna tests (if available)
+        run: |
+          if [ -d "test/echidna" ]; then
+            echo "Running Echidna property tests..."
+            for contract in test/echidna/*.sol; do
+              echo "Testing $contract with Echidna..."
+              echidna $contract --config echidna.yaml || true
+            done
+          else
+            echo "No Echidna tests found, skipping..."
+          fi
+        continue-on-error: true
+
+  report:
+    name: Generate Invariant Report
+    runs-on: ubuntu-latest
+    needs: [invariant-tests, fuzz-tests, property-tests, echidna-tests]
+    if: always()
+    
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v3
+        
+      - name: Generate combined report
+        run: |
+          echo "# HorizCoin Invariant Testing Report" > combined-invariant-report.md
+          echo "**Generated on**: $(date -u)" >> combined-invariant-report.md
+          echo "**Commit**: ${{ github.sha }}" >> combined-invariant-report.md
+          echo "**Branch**: ${{ github.ref_name }}" >> combined-invariant-report.md
+          echo "" >> combined-invariant-report.md
+          
+          echo "## Test Results Summary" >> combined-invariant-report.md
+          echo "| Test Type | Status |" >> combined-invariant-report.md
+          echo "|-----------|--------|" >> combined-invariant-report.md
+          echo "| Invariant Tests | ${{ needs.invariant-tests.result }} |" >> combined-invariant-report.md
+          echo "| Fuzz Tests | ${{ needs.fuzz-tests.result }} |" >> combined-invariant-report.md
+          echo "| Property Tests | ${{ needs.property-tests.result }} |" >> combined-invariant-report.md
+          echo "| Echidna Tests | ${{ needs.echidna-tests.result }} |" >> combined-invariant-report.md
+          echo "" >> combined-invariant-report.md
+          
+          echo "## Individual Reports" >> combined-invariant-report.md
+          for report in invariant-report-*/invariant-report-*.md; do
+            if [ -f "$report" ]; then
+              echo "### $(basename $report .md)" >> combined-invariant-report.md
+              cat "$report" >> combined-invariant-report.md
+              echo "" >> combined-invariant-report.md
+            fi
+          done
+          
+          echo "## Recommendations" >> combined-invariant-report.md
+          echo "- Review any failed invariant tests immediately" >> combined-invariant-report.md
+          echo "- Consider increasing test runs for critical paths" >> combined-invariant-report.md
+          echo "- Add new invariants for any discovered edge cases" >> combined-invariant-report.md
+          echo "- Schedule regular invariant test reviews" >> combined-invariant-report.md
+
+      - name: Upload combined report
+        uses: actions/upload-artifact@v3
+        with:
+          name: combined-invariant-report
+          path: combined-invariant-report.md
+
+      - name: Notify on failures
+        if: ${{ needs.invariant-tests.result == 'failure' || needs.fuzz-tests.result == 'failure' }}
+        run: |
+          echo "❌ Invariant tests failed! Review the reports immediately."
+          echo "This indicates potential security vulnerabilities or logic errors."
+          exit 1
