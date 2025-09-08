@@ -2,7 +2,7 @@ name: Telemetry Progress (Daily)
 
 on:
   schedule:
-    - cron: "0 3 * * *"
+    - cron: "0 3 * * *"          # Daily at 03:00 UTC (runs only on default branch via job-level if)
   workflow_dispatch:
     inputs:
       append_line:
@@ -14,14 +14,6 @@ on:
         required: false
         default: "10"
         type: string
-      strict:
-        description: "Set to true to fail on malformed lines. (Default warn mode = false)"
-        required: false
-        default: "false"
-        type: choice
-        options:
-          - "false"
-          - "true"
 
 permissions:
   contents: write
@@ -49,7 +41,7 @@ jobs:
           fetch-depth: 0
 
       - name: Optionally append new progress entry
-        if: ${{ github.event.inputs.append_line != '' }}
+        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.append_line != '' }}
         env:
           APPEND_LINE: ${{ github.event.inputs.append_line }}
         shell: bash
@@ -65,6 +57,7 @@ jobs:
           if grep -Fxq "$LINE" "$PROGRESS_DOC"; then
             echo "Line already present; skipping."
           else
+            # Ensure file ends with newline then append
             sed -i -e '$a\' "$PROGRESS_DOC"
             echo "$LINE" >> "$PROGRESS_DOC"
             git config user.name "github-actions[bot]"
@@ -83,20 +76,29 @@ jobs:
             echo "Progress document not found: $PROGRESS_DOC" >&2
             exit 1
           fi
+
+          # Grab everything after "## Progress Log"
           awk '/^##[[:space:]]+Progress Log/{flag=1;next} flag{print}' "$PROGRESS_DOC" > _progress_raw.txt || true
           echo "Raw extracted (first 120 lines or fewer):"
           sed -n '1,120p' _progress_raw.txt || true
+
+          # Valid and malformed lines
           grep -E '^- [0-9]{4}-[0-9]{2}-[0-9]{2} - ' _progress_raw.txt > _progress_valid.txt || true
           grep -E '^- ' _progress_raw.txt | grep -vE '^- [0-9]{4}-[0-9]{2}-[0-9]{2} - ' > _progress_malformed.txt || true
+
           VALID_COUNT=$(wc -l < _progress_valid.txt | tr -d ' ' || echo 0)
           MAL_COUNT=$(wc -l < _progress_malformed.txt | tr -d ' ' || echo 0)
+
           echo "Valid lines: $VALID_COUNT"
           echo "Malformed lines: $MAL_COUNT"
+
           ENTRIES="${{ github.event.inputs.entries }}"
-          if ! echo "$ENTRIES" | grep -Eq '^[0-9]+$'; then
+          if ! echo "${ENTRIES:-}" | grep -Eq '^[0-9]+$'; then
             ENTRIES=10
           fi
+
           tail -n "$ENTRIES" _progress_valid.txt | tac > _recent.txt || true
+
           {
             echo "recent<<'EOF'"
             cat _recent.txt
@@ -104,6 +106,7 @@ jobs:
             echo "valid_count=$VALID_COUNT"
             echo "malformed_count=$MAL_COUNT"
           } >> "$GITHUB_OUTPUT"
+
           {
             echo "Telemetry Progress Summary"
             echo "Generated: $(date -u +'%Y-%m-%dT%H:%M:%SZ')"
@@ -119,6 +122,7 @@ jobs:
               head -n 10 _progress_malformed.txt
             fi
           } > progress_summary.txt
+
           jq -n \
             --arg generated "$(date -u +'%Y-%m-%dT%H:%M:%SZ')" \
             --argjson valid "$VALID_COUNT" \
@@ -132,19 +136,12 @@ jobs:
               recent_limit: ($entries|tonumber),
               recent: $recent
             }' > progress_summary.json
-          STRICT="${{ github.event.inputs.strict }}"
-          if [ "$STRICT" = "true" ] && [ "$MAL_COUNT" -gt 0 ]; then
-            echo "Strict mode enabled and malformed lines detected."
+
+          # Strict mode permanently on: fail when malformed lines exist
+          if [ "$MAL_COUNT" -gt 0 ]; then
+            echo "Strict mode: malformed progress lines detected. Failing the job."
             exit 2
           fi
-
-      - name: Emit warnings (warn mode)
-        if: ${{ steps.extract.outputs.malformed_count != '0' && github.event.inputs.strict != 'true' }}
-        shell: bash
-        run: |
-          echo "::warning title=Malformed Progress Lines Detected::${{ steps.extract.outputs.malformed_count }} malformed progress line(s) found. See artifacts or re-run with 'strict: true' to enforce failure."
-          echo "Sample malformed:"
-          head -n 10 _progress_malformed.txt || true
 
       - name: Compute project completion %
         id: scope
@@ -163,11 +160,13 @@ jobs:
             } >> "$GITHUB_OUTPUT"
             exit 0
           fi
+
           echo "Fetching issue #${ISSUE_NUMBER}"
           curl -s -H "Authorization: Bearer $GH_TOKEN" \
                -H "Accept: application/vnd.github+json" \
                "https://api.github.com/repos/${{ github.repository }}/issues/${ISSUE_NUMBER}" \
             | jq -r '.body' > issue_body.md || true
+
           if [ ! -s issue_body.md ]; then
             echo "Issue body empty/unavailable."
             {
@@ -177,21 +176,28 @@ jobs:
             } >> "$GITHUB_OUTPUT"
             exit 0
           fi
+
+          # Exclude everything from "## Stretch" downward
           STRETCH_LINE=$(grep -n -E '^##[[:space:]]+Stretch' issue_body.md | head -n1 | cut -d: -f1 || echo "")
           if [ -n "$STRETCH_LINE" ]; then
             head -n $((STRETCH_LINE-1)) issue_body.md > scope_section.md
           else
             cp issue_body.md scope_section.md
           fi
+
           grep -E '^- \[[ xX]\] \([0-9]+\)' scope_section.md > checklist.txt || true
+
           TOTAL=$(awk -F'[()]' '{sum+=$2} END{print sum+0}' checklist.txt 2>/dev/null || echo 0)
           DONE=$(grep -E '^- \[[xX]\]' checklist.txt | awk -F'[()]' '{sum+=$2} END{print sum+0}' 2>/dev/null || echo 0)
+
           if [ "$TOTAL" -gt 0 ]; then
             PCT=$(awk -v d="$DONE" -v t="$TOTAL" 'BEGIN{printf "%.2f", (d/t)*100}')
           else
             PCT="0.00"
           fi
+
           echo "Computed progress: $PCT% ($DONE / $TOTAL pts)"
+
           {
             echo "total_points=$TOTAL"
             echo "done_points=$DONE"
@@ -213,13 +219,16 @@ jobs:
             echo "progress_summary.json missing; cannot post."
             exit 0
           fi
+
           GENERATED=$(jq -r '.generated' progress_summary.json)
           VALID=$(jq -r '.valid_count' progress_summary.json)
           MAL=$(jq -r '.malformed_count' progress_summary.json)
           LIMIT=$(jq -r '.recent_limit' progress_summary.json)
+
           DONE_POINTS='${{ steps.scope.outputs.done_points }}'
           TOTAL_POINTS='${{ steps.scope.outputs.total_points }}'
           PERCENT='${{ steps.scope.outputs.percent }}'
+
           {
             echo "### Telemetry Progress Run ($GENERATED UTC)"
             echo ""
@@ -248,8 +257,9 @@ jobs:
             echo '```'
             echo "</details>"
             echo ""
-            echo "<sub>Scope calc excludes Stretch section; automation alpha.</sub>"
+            echo "<sub>Scope calc excludes Stretch section; strict mode enforced.</sub>"
           } > issue_comment.md
+
           STATUS=$(curl -s -o /tmp/post.out -w "%{http_code}" \
             -H "Authorization: Bearer $GH_TOKEN" \
             -H "Accept: application/vnd.github+json" \
@@ -297,7 +307,7 @@ jobs:
             echo "### Project Completion"
             echo "- ${{ steps.scope.outputs.percent }}% (${{ steps.scope.outputs.done_points }} / ${{ steps.scope.outputs.total_points }} pts)"
             echo ""
-            echo "_Mode: $([ \"${{ github.event.inputs.strict }}\" = \"true\" ] && echo 'Strict' || echo 'Warn')_"
+            echo "_Mode: Strict_"
             echo ""
             echo "<sub>Concurrency group: telemetry-progress</sub>"
           } >> "$GITHUB_STEP_SUMMARY"
