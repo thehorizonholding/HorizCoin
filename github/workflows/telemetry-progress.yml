@@ -25,9 +25,11 @@ on:
 
 permissions:
   contents: write
+  issues: write
 
 env:
   PROGRESS_DOC: docs/telemetry-initiative-execution.md
+  META_ISSUE: 25
 
 concurrency:
   group: telemetry-progress
@@ -140,14 +142,128 @@ jobs:
         if: ${{ steps.extract.outputs.malformed_count != '0' && github.event.inputs.strict != 'true' }}
         shell: bash
         run: |
-            echo "::warning title=Malformed Progress Lines Detected::${{ steps.extract.outputs.malformed_count }} malformed progress line(s) found. See artifacts or re-run with 'strict: true' to enforce failure."
-            echo "Sample malformed:"
-            head -n 10 _progress_malformed.txt || true
+          echo "::warning title=Malformed Progress Lines Detected::${{ steps.extract.outputs.malformed_count }} malformed progress line(s) found. See artifacts or re-run with 'strict: true' to enforce failure."
+          echo "Sample malformed:"
+          head -n 10 _progress_malformed.txt || true
 
-      - name: Placeholder - Update Meta Issue (future)
+      - name: Compute project completion %
+        id: scope
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE_NUMBER: ${{ env.META_ISSUE }}
         shell: bash
         run: |
-          echo "Meta issue update not yet implemented. (Would PATCH issue #25 using progress_summary.json)."
+          set -euo pipefail
+          if [ -z "${ISSUE_NUMBER}" ]; then
+            echo "No META_ISSUE set; skipping scope calculation."
+            {
+              echo "total_points=0"
+              echo "done_points=0"
+              echo "percent=0.00"
+            } >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "Fetching issue #${ISSUE_NUMBER}"
+          curl -s -H "Authorization: Bearer $GH_TOKEN" \
+               -H "Accept: application/vnd.github+json" \
+               "https://api.github.com/repos/${{ github.repository }}/issues/${ISSUE_NUMBER}" \
+            | jq -r '.body' > issue_body.md || true
+          if [ ! -s issue_body.md ]; then
+            echo "Issue body empty/unavailable."
+            {
+              echo "total_points=0"
+              echo "done_points=0"
+              echo "percent=0.00"
+            } >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          STRETCH_LINE=$(grep -n -E '^##[[:space:]]+Stretch' issue_body.md | head -n1 | cut -d: -f1 || echo "")
+          if [ -n "$STRETCH_LINE" ]; then
+            head -n $((STRETCH_LINE-1)) issue_body.md > scope_section.md
+          else
+            cp issue_body.md scope_section.md
+          fi
+          grep -E '^- \[[ xX]\] \([0-9]+\)' scope_section.md > checklist.txt || true
+          TOTAL=$(awk -F'[()]' '{sum+=$2} END{print sum+0}' checklist.txt 2>/dev/null || echo 0)
+          DONE=$(grep -E '^- \[[xX]\]' checklist.txt | awk -F'[()]' '{sum+=$2} END{print sum+0}' 2>/dev/null || echo 0)
+          if [ "$TOTAL" -gt 0 ]; then
+            PCT=$(awk -v d="$DONE" -v t="$TOTAL" 'BEGIN{printf "%.2f", (d/t)*100}')
+          else
+            PCT="0.00"
+          fi
+          echo "Computed progress: $PCT% ($DONE / $TOTAL pts)"
+          {
+            echo "total_points=$TOTAL"
+            echo "done_points=$DONE"
+            echo "percent=$PCT"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Update Meta Issue (comment with summary)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE_NUMBER: ${{ env.META_ISSUE }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "$ISSUE_NUMBER" ]; then
+            echo "No ISSUE_NUMBER set; skipping comment."
+            exit 0
+          fi
+          if [ ! -f progress_summary.json ]; then
+            echo "progress_summary.json missing; cannot post."
+            exit 0
+          fi
+          GENERATED=$(jq -r '.generated' progress_summary.json)
+          VALID=$(jq -r '.valid_count' progress_summary.json)
+          MAL=$(jq -r '.malformed_count' progress_summary.json)
+          LIMIT=$(jq -r '.recent_limit' progress_summary.json)
+          DONE_POINTS='${{ steps.scope.outputs.done_points }}'
+          TOTAL_POINTS='${{ steps.scope.outputs.total_points }}'
+          PERCENT='${{ steps.scope.outputs.percent }}'
+          {
+            echo "### Telemetry Progress Run ($GENERATED UTC)"
+            echo ""
+            echo "#### Project Completion"
+            echo "- Completion: ${PERCENT:-0.00}% (${DONE_POINTS:-0} / ${TOTAL_POINTS:-0} pts)"
+            echo ""
+            echo "#### Log Summary"
+            echo "- Valid entries: $VALID"
+            echo "- Malformed entries: $MAL"
+            echo "- Recent sample (limit $LIMIT):"
+            echo ""
+            if [ -s _recent.txt ]; then
+              sed 's/^/  - /' _recent.txt
+            else
+              echo "  - _None_"
+            fi
+            if [ "$MAL" -gt 0 ]; then
+              echo ""
+              echo "_Malformed lines detected; consider cleanup._"
+            fi
+            echo ""
+            echo "<details><summary>Raw JSON (progress log)</summary>"
+            echo
+            echo '```json'
+            cat progress_summary.json
+            echo '```'
+            echo "</details>"
+            echo ""
+            echo "<sub>Scope calc excludes Stretch section; automation alpha.</sub>"
+          } > issue_comment.md
+          STATUS=$(curl -s -o /tmp/post.out -w "%{http_code}" \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            -X POST \
+            "https://api.github.com/repos/${{ github.repository }}/issues/$ISSUE_NUMBER/comments" \
+            -d @<(jq -Rn --arg body "$(cat issue_comment.md)" '{body:$body}'))
+          if echo "$STATUS" | grep -qE '20[0-9]'; then
+            echo "Comment posted (HTTP $STATUS)."
+          else
+            echo "Failed to post comment (HTTP $STATUS)"
+            echo "Response:"
+            cat /tmp/post.out || true
+            exit 1
+          fi
 
       - name: Upload summary artifacts
         uses: actions/upload-artifact@v4
@@ -177,6 +293,9 @@ jobs:
               echo "### Malformed (sample)"
               sed 's/^/- /' _progress_malformed.txt | head -n 10
             fi
+            echo ""
+            echo "### Project Completion"
+            echo "- ${{ steps.scope.outputs.percent }}% (${{ steps.scope.outputs.done_points }} / ${{ steps.scope.outputs.total_points }} pts)"
             echo ""
             echo "_Mode: $([ \"${{ github.event.inputs.strict }}\" = \"true\" ] && echo 'Strict' || echo 'Warn')_"
             echo ""
