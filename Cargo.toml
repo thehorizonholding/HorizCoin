@@ -1,0 +1,25 @@
+[package]
+name = "horizcoin"
+version = "0.1.0"
+edition = "2021"
+authors = ["HorizCoin Team"]
+description = "HorizCoin - Proof-of-Bandwidth protocol implementation"
+license = "MIT OR Apache-2.0"
+
+[[bin]]
+name = "horizcoin"
+path = "src/main.rs"
+
+[lib]
+name = "horizcoin"
+path = "src/lib.rs"
+
+[dependencies]
+sha2 = "0.10"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+thiserror = "1.0"
+hex = "0.4"
+
+[dev-dependencies]
+tokio = { version = "1.0", features = ["time", "macros"] }
