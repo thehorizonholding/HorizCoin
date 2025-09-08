@@ -1,0 +1,120 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/primitives",
+    "crates/crypto", 
+    "crates/codec",
+    "crates/tx",
+    "crates/merkle",
+    "crates/block",
+    "crates/state",
+    "crates/storage",
+    "crates/consensus",
+    "crates/p2p",
+    "crates/mempool", 
+    "crates/rpc",
+    "crates/wallet",
+    "crates/testutil",
+    "bins/node",
+    "bins/horiz-cli",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/thehorizonholding/HorizCoin"
+homepage = "https://github.com/thehorizonholding/HorizCoin"
+authors = ["The Horizon Holding <dev@horizonholding.com>"]
+
+[workspace.dependencies]
+# Async runtime
+tokio = { version = "1.0", features = ["full"] }
+tokio-util = "0.7"
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+bincode = "1.3"
+
+# Cryptography
+sha2 = "0.10"
+k256 = { version = "0.13", features = ["ecdsa", "sha256"] }
+bech32 = "0.11"
+
+# Error handling
+thiserror = "1.0"
+anyhow = "1.0"
+
+# Storage
+rocksdb = "0.22"
+
+# Networking
+libp2p = { version = "0.54", features = [
+    "tokio",
+    "tcp",
+    "noise",
+    "mplex",
+    "gossipsub",
+    "identify",
+    "ping",
+    "kad",
+    "request-response",
+    "json"
+] }
+
+# RPC
+jsonrpsee = { version = "0.21", features = ["server", "client"] }
+
+# Testing
+proptest = "1.4"
+tempfile = "3.8"
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# Configuration
+config = "0.14"
+clap = { version = "4.4", features = ["derive", "env"] }
+
+# Utilities
+uuid = { version = "1.6", features = ["v4"] }
+hex = "0.4"
+bytes = "1.5"
+futures = "0.3"
+
+# BIP39 for wallet
+bip39 = "2.0"
+
+# Local crates
+horizcoin-primitives = { path = "crates/primitives" }
+horizcoin-crypto = { path = "crates/crypto" }
+horizcoin-codec = { path = "crates/codec" }
+horizcoin-tx = { path = "crates/tx" }
+horizcoin-merkle = { path = "crates/merkle" }
+horizcoin-block = { path = "crates/block" }
+horizcoin-state = { path = "crates/state" }
+horizcoin-storage = { path = "crates/storage" }
+horizcoin-consensus = { path = "crates/consensus" }
+horizcoin-p2p = { path = "crates/p2p" }
+horizcoin-mempool = { path = "crates/mempool" }
+horizcoin-rpc = { path = "crates/rpc" }
+horizcoin-wallet = { path = "crates/wallet" }
+horizcoin-testutil = { path = "crates/testutil" }
+
+# Linting configuration
+[workspace.lints.rust]
+warnings = "deny"
+missing_docs = "warn"
+unreachable_pub = "warn"
+
+[workspace.lints.clippy]
+all = "deny"
+pedantic = "warn"
+nursery = "warn"
+cargo = "warn"
+# Allow some pedantic lints that are too restrictive
+module_name_repetitions = "allow"
+missing_errors_doc = "allow"
+missing_panics_doc = "allow"
