@@ -1,5 +1,6 @@
 [package]
 name = "horizcoin-node"
+description = "HorizCoin blockchain node"
 version.workspace = true
 edition.workspace = true
 license.workspace = true

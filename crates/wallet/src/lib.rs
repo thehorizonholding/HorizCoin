@@ -1,4 +1,4 @@
-//! HorizCoin wallet functionality.
+//! `HorizCoin` wallet functionality.
 
 #[cfg(test)]
 mod tests {

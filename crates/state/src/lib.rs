@@ -1,4 +1,4 @@
-//! HorizCoin state management.
+//! `HorizCoin` state management.
 
 #[cfg(test)]
 mod tests {

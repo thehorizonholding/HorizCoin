@@ -1,5 +1,6 @@
 [package]
 name = "horizcoin-wallet"
+description = "Wallet functionality for HorizCoin"
 version.workspace = true
 edition.workspace = true
 license.workspace = true

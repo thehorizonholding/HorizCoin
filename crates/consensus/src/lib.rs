@@ -1,4 +1,4 @@
-//! HorizCoin consensus engine.
+//! `HorizCoin` consensus engine.
 
 #[cfg(test)]
 mod tests {

@@ -1,5 +1,6 @@
 [package]
 name = "horizcoin-codec"
+description = "Serialization codec for HorizCoin"
 version.workspace = true
 edition.workspace = true
 license.workspace = true

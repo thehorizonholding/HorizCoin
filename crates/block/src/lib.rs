@@ -1,4 +1,4 @@
-//! HorizCoin block types and validation.
+//! `HorizCoin` block types and validation.
 
 #[cfg(test)]
 mod tests {

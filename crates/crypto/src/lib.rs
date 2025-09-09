@@ -1,4 +1,4 @@
-//! HorizCoin cryptographic primitives.
+//! `HorizCoin` cryptographic primitives.
 
 #[cfg(test)]
 mod tests {

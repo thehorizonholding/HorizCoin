@@ -1,4 +1,4 @@
-//! HorizCoin codec for serialization.
+//! `HorizCoin` codec for serialization.
 
 #[cfg(test)]
 mod tests {

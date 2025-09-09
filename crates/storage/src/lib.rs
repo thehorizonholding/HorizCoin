@@ -1,4 +1,4 @@
-//! HorizCoin storage backend.
+//! `HorizCoin` storage backend.
 
 #[cfg(test)]
 mod tests {

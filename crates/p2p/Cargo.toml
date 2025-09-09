@@ -1,5 +1,6 @@
 [package]
 name = "horizcoin-p2p"
+description = "Peer-to-peer networking for HorizCoin"
 version.workspace = true
 edition.workspace = true
 license.workspace = true

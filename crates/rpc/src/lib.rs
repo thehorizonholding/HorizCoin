@@ -1,4 +1,4 @@
-//! HorizCoin RPC server.
+//! `HorizCoin` RPC server.
 
 #[cfg(test)]
 mod tests {

@@ -1,4 +1,4 @@
-//! HorizCoin transaction mempool.
+//! `HorizCoin` transaction mempool.
 
 #[cfg(test)]
 mod tests {

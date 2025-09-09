@@ -1,5 +1,6 @@
 [package]
 name = "horizcoin-tx"
+description = "Transaction types and utilities for HorizCoin"
 version.workspace = true
 edition.workspace = true
 license.workspace = true

@@ -1,5 +1,6 @@
 [package]
 name = "horizcoin-consensus"
+description = "Consensus engine for HorizCoin"
 version.workspace = true
 edition.workspace = true
 license.workspace = true

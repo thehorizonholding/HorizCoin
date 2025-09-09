@@ -1,4 +1,4 @@
-//! HorizCoin Merkle tree implementation.
+//! `HorizCoin` Merkle tree implementation.
 
 #[cfg(test)]
 mod tests {

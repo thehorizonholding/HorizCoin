@@ -1,4 +1,4 @@
-//! HorizCoin peer-to-peer networking.
+//! `HorizCoin` peer-to-peer networking.
 
 #[cfg(test)]
 mod tests {

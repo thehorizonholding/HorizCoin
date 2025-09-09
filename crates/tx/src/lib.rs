@@ -1,4 +1,4 @@
-//! HorizCoin transaction types and utilities.
+//! `HorizCoin` transaction types and utilities.
 
 #[cfg(test)]
 mod tests {

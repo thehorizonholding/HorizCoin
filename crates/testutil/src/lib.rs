@@ -1,4 +1,4 @@
-//! HorizCoin testing utilities.
+//! `HorizCoin` testing utilities.
 
 #[cfg(test)]
 mod tests {

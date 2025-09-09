@@ -1,5 +1,6 @@
 [package]
 name = "horiz-cli"
+description = "HorizCoin command-line interface"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
