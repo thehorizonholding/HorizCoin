@@ -1,0 +1,34 @@
+# Build artifacts
+/target/
+Cargo.lock
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Runtime files
+*.log
+*.pid
+node_data/
+wallet_data/
+.env
+.env.local
+
+# Test artifacts
+/tmp/
+coverage/
+*.profraw
+
+# Documentation build
+/book/
+
+# Flamegraph
+flamegraph.svg
+perf.data*
