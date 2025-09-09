@@ -6,7 +6,7 @@ HorizCoin is a blockchain protocol implementing a Proof-of-Bandwidth consensus m
 
 ### Prerequisites
 
-- Rust 1.70+ with Cargo
+- Rust 1.70.0 with Cargo
 - Git
 
 ### Building
@@ -16,36 +16,35 @@ HorizCoin is a blockchain protocol implementing a Proof-of-Bandwidth consensus m
 git clone https://github.com/thehorizonholding/HorizCoin.git
 cd HorizCoin
 
+# Optional: Set Rust version locally
+rustup override set 1.70.0
+
 # Build all components
-cargo build --release
+cargo build --workspace
 
 # Run tests
 cargo test
 ```
 
-### Running a Local Development Network
+### Running the Development Node and CLI
 
 ```bash
-# Start a single-node development network
-cargo run --bin horizd -- --dev
+# Start the development node
+cargo run -p horizcoin-node
 
-# In another terminal, create a wallet and send a transaction
-cargo run --bin horiz-cli -- wallet create
-cargo run --bin horiz-cli -- wallet fund --amount 1000000
-cargo run --bin horiz-cli -- send --to <address> --amount 100
+# In another terminal, run the CLI
+cargo run -p horiz-cli -- --help
 ```
 
 ### Quick Transaction Example
 
 ```bash
-# Generate a new address
-ADDR=$(cargo run --bin horiz-cli -- wallet address)
+# Generate help information
+cargo run -p horiz-cli -- --help
 
-# Send funds to the address
-cargo run --bin horiz-cli -- send --to $ADDR --amount 1000
-
-# Check balance
-cargo run --bin horiz-cli -- balance $ADDR
+# Example usage (placeholder - actual implementation pending)
+# cargo run -p horiz-cli -- wallet create
+# cargo run -p horiz-cli -- send --to <address> --amount 100
 ```
 
 ## Architecture Overview

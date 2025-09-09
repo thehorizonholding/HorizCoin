@@ -1,0 +1,18 @@
+[package]
+name = "horiz-cli"
+description = "HorizCoin command-line interface"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+authors.workspace = true
+
+[[bin]]
+name = "horiz-cli"
+path = "src/main.rs"
+
+[dependencies]
+
+[lints]
+workspace = true
