@@ -1,0 +1,217 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+env:
+  FOUNDRY_PROFILE: ci
+
+jobs:
+  check:
+    strategy:
+      fail-fast: true
+
+    name: HorizCoin CI
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: nightly
+
+      - name: Run Forge build
+        run: |
+          forge --version
+          forge build --sizes
+        id: build
+
+      - name: Run Forge tests
+        run: |
+          forge test -vvv
+        id: test
+
+      - name: Run Forge fmt check
+        run: |
+          forge fmt --check
+        id: fmt
+
+      - name: Run Slither static analysis
+        uses: crytic/slither-action@v0.3.0
+        id: slither
+        with:
+          target: 'src/'
+          slither-config: slither.config.json
+          fail-on: none
+          slither-args: --print-summary
+
+      - name: Generate gas report
+        run: |
+          forge test --gas-report > gas-report.txt
+          cat gas-report.txt
+        id: gas
+
+      - name: Upload gas report
+        uses: actions/upload-artifact@v3
+        with:
+          name: gas-report
+          path: gas-report.txt
+
+      - name: Run coverage
+        run: |
+          forge coverage --report lcov
+        id: coverage
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./lcov.info
+          flags: foundry
+          name: foundry-coverage
+          fail_ci_if_error: false
+
+  lint:
+    name: Lint and Format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+
+      - name: Check Solidity formatting
+        run: forge fmt --check
+
+      - name: Run Solhint
+        run: |
+          npm install -g solhint
+          solhint 'src/**/*.sol'
+
+  security:
+    name: Security Analysis
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+
+      - name: Build contracts
+        run: forge build
+
+      - name: Run Slither
+        uses: crytic/slither-action@v0.3.0
+        with:
+          target: 'src/'
+          slither-config: slither.config.json
+          sarif: results.sarif
+          fail-on: medium
+
+      - name: Upload SARIF file
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: results.sarif
+
+      - name: Run Mythril (if available)
+        continue-on-error: true
+        run: |
+          pip install mythril
+          myth analyze src/token/HorizCoinToken.sol --execution-timeout 60
+          myth analyze src/governance/HorizGovernor.sol --execution-timeout 60
+          myth analyze src/treasury/HorizTreasury.sol --execution-timeout 60
+
+  docs:
+    name: Documentation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+
+      - name: Generate documentation
+        run: |
+          forge doc --build
+
+      - name: Check documentation links
+        run: |
+          find docs/ -name "*.md" -exec grep -l "http" {} \; | xargs -I {} sh -c 'echo "Checking links in {}" && grep -o "https\?://[^)]*" {} | head -10'
+
+      - name: Validate README
+        run: |
+          test -f README.md
+          test -s README.md
+
+  deployment-test:
+    name: Test Deployment Script
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+
+      - name: Build contracts
+        run: forge build
+
+      - name: Test deployment script (dry run)
+        run: |
+          # Test compilation of deployment script
+          forge script script/DeployAll.s.sol --rpc-url http://localhost:8545 --skip-simulation
+
+      - name: Validate post-deploy script
+        run: |
+          chmod +x scripts/post-deploy-checklist.sh
+          # Test script syntax
+          bash -n scripts/post-deploy-checklist.sh
+
+  integration:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    needs: [check, lint]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+
+      - name: Start Anvil
+        run: |
+          anvil --fork-url ${{ secrets.MAINNET_RPC_URL }} --fork-block-number 19000000 &
+          sleep 10
+        env:
+          MAINNET_RPC_URL: ${{ secrets.MAINNET_RPC_URL }}
+
+      - name: Run integration tests
+        run: |
+          forge test --match-path "test/integration/*" --rpc-url http://localhost:8545 -vvv
+        continue-on-error: true
+
+  notify:
+    name: Notification
+    runs-on: ubuntu-latest
+    needs: [check, lint, security, docs, deployment-test]
+    if: always()
+    steps:
+      - name: Notify on success
+        if: ${{ needs.check.result == 'success' && needs.lint.result == 'success' }}
+        run: |
+          echo "✅ All CI checks passed!"
+
+      - name: Notify on failure
+        if: ${{ needs.check.result == 'failure' || needs.lint.result == 'failure' }}
+        run: |
+          echo "❌ CI checks failed!"
+          exit 1

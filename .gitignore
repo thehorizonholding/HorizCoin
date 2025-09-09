@@ -1,0 +1,52 @@
+# Compiler outputs
+out/
+cache/
+artifacts/
+
+# Node modules
+node_modules/
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# IDE files
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Dependencies
+lib/
+
+# Cache directories
+cache_hardhat/
+typechain/
+typechain-types/
+
+# Logs
+*.log
+logs/
+
+# Coverage
+coverage/
+coverage.json
+lcov.info
+
+# Gas reports
+gas-report.txt
+
+# Temporary files
+tmp/
+temp/
+
+# Build artifacts
+dist/
+build/
+
+# Addresses from deployment
+addresses.json
+!addresses.example.json
