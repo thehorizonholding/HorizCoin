@@ -1,0 +1,116 @@
+# HorizCoin - Mobile Data Extraction .gitignore
+# ⚠️ DRAFT GITIGNORE - Review and customize as needed
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+cover/
+
+# Virtual environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# IPython
+profile_default/
+ipython_config.py
+
+# Environments
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Logs
+*.log
+logs/
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Database
+*.db
+*.sqlite
+
+# Temporary files
+*.tmp
+*.temp
+.DS_Store
+Thumbs.db
+
+# Mobile Data Extraction specific
+mobile-data-extraction/data/
+mobile-data-extraction/logs/
+mobile-data-extraction/tmp/
+mobile-data-extraction/.env
+mobile-data-extraction/config/local.yaml
+mobile-data-extraction/config/production.yaml
+
+# Build artifacts
+mobile-data-extraction/build/
+mobile-data-extraction/dist/
+
+# Documentation
+mobile-data-extraction/docs/_build/
+
+# DRAFT: Add additional exclusions as needed
