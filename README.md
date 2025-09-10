@@ -23,6 +23,42 @@ cargo build --release
 cargo test
 ```
 
+### Run on the Web
+
+HorizCoin includes a web demo that can be deployed on GitHub Copilot Spaces for public access:
+
+#### Deploy to Copilot Spaces
+
+1. Create a new Copilot Space from this repository
+2. The included Dockerfile will automatically build and run the web demo
+3. Access the live demo at the provided public URL
+
+#### Run Locally with Docker
+
+```bash
+# Build the Docker image
+docker build -t horizcoin-web .
+
+# Run the container
+docker run -p 3000:3000 -e PORT=3000 horizcoin-web
+```
+
+Then visit http://localhost:3000 to see the web interface.
+
+#### Run Locally with Cargo
+
+```bash
+# Start the web server
+cargo run -p horizcoin-web
+
+# Or specify a custom port
+PORT=8080 cargo run -p horizcoin-web
+```
+
+The web interface provides:
+- **/** - Project overview with version information
+- **/healthz** - Health check endpoint for monitoring
+
 ### Running a Local Development Network
 
 ```bash

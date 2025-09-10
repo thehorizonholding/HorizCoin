@@ -1,0 +1,7 @@
+{
+  "name": "HorizCoin Web Demo",
+  "dockerfile": "Dockerfile",
+  "port": 3000,
+  "healthcheck": "/healthz",
+  "description": "Live demo of the HorizCoin blockchain protocol with web interface"
+}
