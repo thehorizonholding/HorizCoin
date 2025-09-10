@@ -34,11 +34,45 @@ cargo test
 
 ### Run on the Web
 
-HorizCoin includes a web demo that can be deployed on GitHub Copilot Spaces for public access:
+HorizCoin includes a web demo that can be deployed to various cloud platforms for public access.
 
-#### Deploy to Copilot Spaces
+#### Live Demo
 
-1. Create a new Copilot Space from this repository
+🌐 **[https://horizcoin-web.onrender.com](https://horizcoin-web.onrender.com)** - Live demo automatically deployed from main branch
+
+#### Automated Deployment
+
+The repository includes automated deployment configuration for multiple platforms:
+
+**Render (Recommended)**
+- Uses `render.yaml` for configuration
+- Automatically deploys from main branch when connected to GitHub
+- Free tier available with HTTPS included
+- No additional setup required once connected
+
+**Railway**
+- Uses `railway.toml` for configuration  
+- Requires `RAILWAY_TOKEN` and optionally `RAILWAY_SERVICE_ID` secrets
+- Deploys via GitHub Actions workflow
+
+#### Deploy to Your Own Instance
+
+**Option 1: Render**
+1. Fork this repository
+2. Connect your GitHub account to [Render](https://render.com)
+3. Create a new Web Service from your forked repository
+4. Render will automatically use the `render.yaml` configuration
+5. Your app will be available at `https://your-service-name.onrender.com`
+
+**Option 2: Railway**
+1. Fork this repository
+2. Create a [Railway](https://railway.app) account
+3. Create a new project and connect your GitHub repository
+4. Add `RAILWAY_TOKEN` to your GitHub repository secrets
+5. Push to main branch to trigger deployment
+
+**Option 3: GitHub Codespaces**
+1. Create a new Codespace from this repository
 2. The included Dockerfile will automatically build and run the web demo
 3. Access the live demo at the provided public URL
 

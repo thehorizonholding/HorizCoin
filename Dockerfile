@@ -3,6 +3,9 @@ FROM rust:1.75 AS builder
 
 WORKDIR /usr/src/horizcoin
 
+# Install ca-certificates to fix potential SSL issues
+RUN apt-get update && apt-get install -y ca-certificates && rm -rf /var/lib/apt/lists/*
+
 # Copy workspace configuration
 COPY Cargo.toml ./
 COPY rustfmt.toml ./
