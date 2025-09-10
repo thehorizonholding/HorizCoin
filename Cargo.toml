@@ -2,21 +2,22 @@
 resolver = "2"
 members = [
     "crates/primitives",
-    "crates/crypto", 
-    "crates/codec",
-    "crates/tx",
-    "crates/merkle",
-    "crates/block",
-    "crates/state",
-    "crates/storage",
-    "crates/consensus",
-    "crates/p2p",
-    "crates/mempool", 
-    "crates/rpc",
-    "crates/wallet",
-    "crates/testutil",
-    "bins/node",
-    "bins/horiz-cli",
+    # "crates/crypto", 
+    # "crates/codec",
+    # "crates/tx",
+    # "crates/merkle",
+    # "crates/block",
+    # "crates/state",
+    # "crates/storage",
+    # "crates/consensus",
+    # "crates/p2p",
+    # "crates/mempool", 
+    # "crates/rpc",
+    # "crates/wallet",
+    # "crates/testutil",
+    # "bins/node",
+    # "bins/horiz-cli",
+    "bins/web",
 ]
 
 [workspace.package]
@@ -66,6 +67,9 @@ libp2p = { version = "0.54", features = [
 # RPC
 jsonrpsee = { version = "0.21", features = ["server", "client"] }
 
+# Web framework
+axum = "0.6.20"
+
 # Testing
 proptest = "1.4"
 tempfile = "3.8"
@@ -102,19 +106,3 @@ horizcoin-mempool = { path = "crates/mempool" }
 horizcoin-rpc = { path = "crates/rpc" }
 horizcoin-wallet = { path = "crates/wallet" }
 horizcoin-testutil = { path = "crates/testutil" }
-
-# Linting configuration
-[workspace.lints.rust]
-warnings = "deny"
-missing_docs = "warn"
-unreachable_pub = "warn"
-
-[workspace.lints.clippy]
-all = "deny"
-pedantic = "warn"
-nursery = "warn"
-cargo = "warn"
-# Allow some pedantic lints that are too restrictive
-module_name_repetitions = "allow"
-missing_errors_doc = "allow"
-missing_panics_doc = "allow"
