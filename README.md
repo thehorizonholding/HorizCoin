@@ -34,7 +34,32 @@ cargo test
 
 ### Run on the Web
 
-HorizCoin includes a web demo that can be deployed on GitHub Copilot Spaces for public access:
+HorizCoin includes a web demo that can be deployed on various platforms for public access:
+
+#### Public Deployment (AWS Lightsail)
+
+The repository includes automated deployment to AWS Lightsail Containers via GitHub Actions:
+
+**Required Repository Secrets:**
+- `AWS_ACCESS_KEY_ID`: AWS access key with Lightsail permissions
+- `AWS_SECRET_ACCESS_KEY`: AWS secret access key  
+- `AWS_REGION`: AWS region (e.g., `us-east-1`)
+- `LIGHTSAIL_SERVICE_NAME` (optional): Service name (default: `horizcoin-web`)
+
+**Deployment:**
+- Automatic deployment on push to `main` branch
+- Manual deployment via GitHub Actions "Deploy to AWS Lightsail" workflow
+- Service runs on a public HTTPS URL with health monitoring
+
+**Access the Deployment:**
+- **Public URL**: Available in GitHub Actions deployment summary
+- **Health Check**: `https://your-service-url.amazonaws.com/healthz`
+
+The Lightsail deployment includes:
+- Automatic container service creation and management
+- Health check monitoring on `/healthz` endpoint
+- HTTPS public endpoint with AWS-managed certificates
+- Automated image builds and deployments
 
 #### Deploy to Copilot Spaces
 

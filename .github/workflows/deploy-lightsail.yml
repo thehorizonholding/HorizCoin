@@ -1,0 +1,203 @@
+---
+name: Deploy to AWS Lightsail
+
+"on":
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      service_name:
+        description: 'Lightsail service name'
+        required: false
+        default: 'horizcoin-web'
+        type: string
+      region:
+        description: 'AWS region'
+        required: false
+        default: 'us-east-1'
+        type: string
+
+env:
+  REGISTRY: public.ecr.aws
+
+jobs:
+  deploy:
+    name: Deploy to Lightsail
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: >-
+            ${{ inputs.region || secrets.AWS_REGION || 'us-east-1' }}
+
+      - name: Set deployment variables
+        id: vars
+        run: |
+          SERVICE_NAME="${{ inputs.service_name || secrets.LIGHTSAIL_SERVICE_NAME || 'horizcoin-web' }}"
+          REGION="${{ inputs.region || secrets.AWS_REGION || 'us-east-1' }}"
+          IMAGE_TAG="latest-$(date +%s)"
+
+          echo "service_name=${SERVICE_NAME}" >> $GITHUB_OUTPUT
+          echo "region=${REGION}" >> $GITHUB_OUTPUT
+          echo "image_tag=${IMAGE_TAG}" >> $GITHUB_OUTPUT
+
+          echo "🚀 Deploying to service: ${SERVICE_NAME}"
+          echo "📍 Region: ${REGION}"
+          echo "🏷️ Image tag: ${IMAGE_TAG}"
+
+      - name: Check if Lightsail container service exists
+        id: check_service
+        run: |
+          if aws lightsail get-container-services \
+            --region ${{ steps.vars.outputs.region }} \
+            --service-name ${{ steps.vars.outputs.service_name }} \
+            > /dev/null 2>&1; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+            echo "✅ Service ${{ steps.vars.outputs.service_name }} already exists"
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+            echo "❌ Service ${{ steps.vars.outputs.service_name }} does not exist"
+          fi
+
+      - name: Create Lightsail container service
+        if: steps.check_service.outputs.exists == 'false'
+        run: |
+          echo "🔨 Creating Lightsail container service: ${{ steps.vars.outputs.service_name }}"
+          aws lightsail create-container-service \
+            --region ${{ steps.vars.outputs.region }} \
+            --service-name ${{ steps.vars.outputs.service_name }} \
+            --power nano \
+            --scale 1 \
+            --tags key=Project,value=HorizCoin key=Environment,value=Production
+
+          echo "⏳ Waiting for service to be ready..."
+          aws lightsail wait container-service-available \
+            --region ${{ steps.vars.outputs.region }} \
+            --service-name ${{ steps.vars.outputs.service_name }}
+
+      - name: Build and push Docker image to Lightsail
+        run: |
+          echo "🏗️ Building Docker image..."
+
+          # Build the image locally to avoid SSL certificate issues in multi-stage builds
+          docker build -t ${{ steps.vars.outputs.service_name }}:${{ steps.vars.outputs.image_tag }} .
+
+          echo "📤 Pushing image to Lightsail..."
+          aws lightsail push-container-image \
+            --region ${{ steps.vars.outputs.region }} \
+            --service-name ${{ steps.vars.outputs.service_name }} \
+            --label horizcoin-web \
+            --image ${{ steps.vars.outputs.service_name }}:${{ steps.vars.outputs.image_tag }}
+
+      - name: Deploy container to Lightsail service
+        run: |
+          echo "🚀 Deploying container to Lightsail service..."
+
+          # Create deployment configuration
+          cat > deployment.json << EOF
+          {
+            "containers": {
+              "horizcoin-web": {
+                "image": ":${{ steps.vars.outputs.service_name }}.horizcoin-web.${{ steps.vars.outputs.image_tag }}",
+                "environment": {
+                  "PORT": "3000"
+                },
+                "ports": {
+                  "3000": "HTTP"
+                }
+              }
+            },
+            "publicEndpoint": {
+              "containerName": "horizcoin-web",
+              "containerPort": 3000,
+              "healthCheck": {
+                "healthyThreshold": 2,
+                "unhealthyThreshold": 2,
+                "timeoutSeconds": 5,
+                "intervalSeconds": 30,
+                "path": "/healthz",
+                "successCodes": "200"
+              }
+            }
+          }
+          EOF
+
+          # Deploy the container
+          aws lightsail create-container-service-deployment \
+            --region ${{ steps.vars.outputs.region }} \
+            --service-name ${{ steps.vars.outputs.service_name }} \
+            --cli-input-json file://deployment.json
+
+          echo "⏳ Waiting for deployment to complete..."
+          aws lightsail wait container-service-deployment-available \
+            --region ${{ steps.vars.outputs.region }} \
+            --service-name ${{ steps.vars.outputs.service_name }}
+
+      - name: Get service URL and create deployment summary
+        run: |
+          echo "📊 Getting deployment information..."
+
+          # Get service details
+          SERVICE_INFO=$(aws lightsail get-container-services \
+            --region ${{ steps.vars.outputs.region }} \
+            --service-name ${{ steps.vars.outputs.service_name }})
+
+          SERVICE_URL=$(echo "$SERVICE_INFO" | jq -r '.containerServices[0].url // empty')
+          SERVICE_STATE=$(echo "$SERVICE_INFO" | jq -r '.containerServices[0].state // "UNKNOWN"')
+
+          if [ -n "$SERVICE_URL" ] && [ "$SERVICE_URL" != "null" ]; then
+            echo "🌐 Service URL: $SERVICE_URL"
+            echo "🏥 Health Check: $SERVICE_URL/healthz"
+          else
+            echo "⚠️ Service URL not yet available, state: $SERVICE_STATE"
+            SERVICE_URL="Not yet available (state: $SERVICE_STATE)"
+          fi
+
+          # Create job summary
+          cat >> $GITHUB_STEP_SUMMARY << EOF
+          # 🚀 HorizCoin Web Demo Deployment
+
+          ## Deployment Details
+          - **Service Name**: \`${{ steps.vars.outputs.service_name }}\`
+          - **Region**: \`${{ steps.vars.outputs.region }}\`
+          - **Image Tag**: \`${{ steps.vars.outputs.image_tag }}\`
+          - **Status**: \`$SERVICE_STATE\`
+
+          ## Access Information
+          EOF
+
+          if [ -n "$SERVICE_URL" ] && [ "$SERVICE_URL" != "null" ] && [ "$SERVICE_URL" != "Not yet available"* ]; then
+            cat >> $GITHUB_STEP_SUMMARY << EOF
+          - **🌐 Public URL**: [$SERVICE_URL]($SERVICE_URL)
+          - **🏥 Health Check**: [$SERVICE_URL/healthz]($SERVICE_URL/healthz)
+          EOF
+          else
+            cat >> $GITHUB_STEP_SUMMARY << EOF
+          - **🌐 Public URL**: $SERVICE_URL
+          - **🏥 Health Check**: Will be available once deployment completes
+
+          > **Note**: The service URL may take a few minutes to become available after deployment.
+          > You can check the status in the AWS Lightsail console.
+          EOF
+          fi
+
+          cat >> $GITHUB_STEP_SUMMARY << EOF
+
+          ## Quick Commands
+          \`\`\`bash
+          # Check service status
+          aws lightsail get-container-services --service-name ${{ steps.vars.outputs.service_name }} --region ${{ steps.vars.outputs.region }}
+
+          # View service logs
+          aws lightsail get-container-log --service-name ${{ steps.vars.outputs.service_name }} --container-name horizcoin-web --region ${{ steps.vars.outputs.region }}
+          \`\`\`
+          EOF
+
+          echo "✅ Deployment completed successfully!"
