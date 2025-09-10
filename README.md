@@ -16,8 +16,17 @@ HorizCoin is a blockchain protocol implementing a Proof-of-Bandwidth consensus m
 git clone https://github.com/thehorizonholding/HorizCoin.git
 cd HorizCoin
 
+# Set Rust version for project
+rustup override set 1.70.0
+
 # Build all components
-cargo build --release
+cargo build --workspace
+
+# Run the node
+cargo run -p horizcoin-node
+
+# Run the CLI (see help)
+cargo run -p horiz-cli -- --help
 
 # Run tests
 cargo test
