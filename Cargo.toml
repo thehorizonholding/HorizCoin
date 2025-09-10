@@ -1,22 +1,23 @@
 [workspace]
 resolver = "2"
 members = [
+    "crates/crypto", 
+    "crates/codec",
+    "crates/tx",
+    "crates/merkle",
+    "crates/block",
+    "crates/state",
+    "crates/storage",
+    "crates/consensus",
+    "crates/p2p",
+    "crates/mempool", 
+    "crates/rpc",
+    "crates/wallet",
+    "crates/testutil",
+    "bins/node",
+    "bins/horiz-cli",
+    # New members introduced in PR #42
     "crates/primitives",
-    # "crates/crypto", 
-    # "crates/codec",
-    # "crates/tx",
-    # "crates/merkle",
-    # "crates/block",
-    # "crates/state",
-    # "crates/storage",
-    # "crates/consensus",
-    # "crates/p2p",
-    # "crates/mempool", 
-    # "crates/rpc",
-    # "crates/wallet",
-    # "crates/testutil",
-    # "bins/node",
-    # "bins/horiz-cli",
     "bins/web",
 ]
 
@@ -67,7 +68,7 @@ libp2p = { version = "0.54", features = [
 # RPC
 jsonrpsee = { version = "0.21", features = ["server", "client"] }
 
-# Web framework
+# Web framework (added by PR #42)
 axum = "0.6.20"
 
 # Testing
@@ -106,3 +107,22 @@ horizcoin-mempool = { path = "crates/mempool" }
 horizcoin-rpc = { path = "crates/rpc" }
 horizcoin-wallet = { path = "crates/wallet" }
 horizcoin-testutil = { path = "crates/testutil" }
+
+# Linting configuration
+[workspace.lints.rust]
+warnings = "deny"
+missing_docs = "warn"
+unreachable_pub = "warn"
+
+[workspace.lints.clippy]
+# Set lint groups to lower priority to allow specific overrides
+all = { level = "deny", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
+nursery = { level = "warn", priority = -1 }
+cargo = { level = "warn", priority = -1 }
+# Allow some pedantic lints that are too restrictive
+module_name_repetitions = "allow"
+missing_errors_doc = "allow"
+missing_panics_doc = "allow"
+# Allow cargo metadata warnings for scaffolding
+cargo_common_metadata = "allow"
