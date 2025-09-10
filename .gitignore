@@ -25,6 +25,7 @@ wallet_data/
 /tmp/
 coverage/
 *.profraw
+test-*.sh
 
 # Documentation build
 /book/

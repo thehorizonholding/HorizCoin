@@ -1,0 +1,17 @@
+[package]
+name = "horizcoin-server"
+version = "0.1.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/thehorizonholding/HorizCoin"
+homepage = "https://github.com/thehorizonholding/HorizCoin"
+authors = ["The Horizon Holding <dev@horizonholding.com>"]
+
+[dependencies]
+axum = "0.7"
+tokio = { version = "1.0", features = ["full"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+[dev-dependencies]
+tower = "0.5"

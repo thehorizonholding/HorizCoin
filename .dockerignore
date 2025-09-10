@@ -1,0 +1,32 @@
+# Build artifacts
+target/
+Cargo.lock
+
+# Git
+.git/
+.gitignore
+
+# Documentation
+*.md
+docs/
+
+# Test scripts
+test-*.sh
+
+# GitHub workflows
+.github/
+github/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp

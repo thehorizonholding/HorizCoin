@@ -1,8 +1,57 @@
 # HorizCoin
 
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/thehorizonholding/HorizCoin)
+
 HorizCoin is a blockchain protocol implementing a Proof-of-Bandwidth consensus mechanism. This repository contains the reference implementation of the HorizCoin node software, wallet, and development tools.
 
 ## Quick Start
+
+### HTTP Server (For Public Deployment)
+
+For a quick public demo of the HorizCoin project:
+
+```bash
+# Run the HTTP server locally
+cargo run -p horizcoin-server
+
+# Server will be available at:
+# - http://localhost:8080/ (project banner)
+# - http://localhost:8080/healthz (health check)
+```
+
+The server respects the `PORT` environment variable for deployment platforms:
+
+```bash
+# Custom port
+PORT=3000 cargo run -p horizcoin-server
+```
+
+**Available Endpoints:**
+- `GET /` - Project banner with package name and version
+- `GET /healthz` - Health check endpoint (returns "ok")
+
+### Docker Deployment
+
+```bash
+# Build the Docker image (requires internet connectivity)
+docker build -t horizcoin .
+
+# Run with Docker
+docker run -e PORT=8080 -p 8080:8080 horizcoin
+
+# The server will be available at http://localhost:8080
+```
+
+**Note:** The Docker build requires internet connectivity to download Rust dependencies. If the build fails due to network issues, the deployment will work correctly on platforms like Render which have proper network access.
+
+### One-Click Deployment
+
+Click the "Deploy to Render" button above to deploy HorizCoin to Render with one click. The deployment will:
+
+- Build and deploy the HTTP server automatically
+- Provide a public URL for the project banner and health check
+- Use the free plan by default
+- Include automatic health checks
 
 ### Prerequisites
 
