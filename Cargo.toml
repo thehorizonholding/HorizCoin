@@ -93,7 +93,6 @@ futures = "0.3"
 bip39 = "2.0"
 
 # Local crates
-horizcoin-primitives = { path = "crates/primitives" }
 horizcoin-crypto = { path = "crates/crypto" }
 horizcoin-codec = { path = "crates/codec" }
 horizcoin-tx = { path = "crates/tx" }
