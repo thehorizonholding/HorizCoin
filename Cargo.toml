@@ -16,6 +16,9 @@ members = [
     "crates/testutil",
     "bins/node",
     "bins/horiz-cli",
+    # New members introduced in PR #42
+    "crates/primitives",
+    "bins/web",
 ]
 
 [workspace.package]
@@ -64,6 +67,9 @@ libp2p = { version = "0.54", features = [
 
 # RPC
 jsonrpsee = { version = "0.21", features = ["server", "client"] }
+
+# Web framework (added by PR #42)
+axum = "0.6.20"
 
 # Testing
 proptest = "1.4"
