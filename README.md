@@ -6,8 +6,9 @@ HorizCoin is a blockchain protocol implementing a Proof-of-Bandwidth consensus m
 
 ### Prerequisites
 
-- Rust 1.70+ with Cargo
+- Rust 1.70.0+ with Cargo
 - Git
+- RocksDB system dependencies (for storage features)
 
 ### Building
 
@@ -16,18 +17,35 @@ HorizCoin is a blockchain protocol implementing a Proof-of-Bandwidth consensus m
 git clone https://github.com/thehorizonholding/HorizCoin.git
 cd HorizCoin
 
+# Set Rust version (recommended)
+rustup override set 1.70.0
+
 # Build all components
-cargo build --release
+cargo build --workspace
 
 # Run tests
-cargo test
+cargo test --all
+```
+
+### Running the Node and CLI
+
+```bash
+# Start the HorizCoin node
+cargo run -p horizcoin-node
+
+# Use the CLI tool
+cargo run -p horiz-cli -- --help
 ```
 
 ### Running a Local Development Network
 
 ```bash
-# Start a single-node development network
-cargo run --bin horizd -- --dev
+# Start the HorizCoin node (prints banner and exits for now)
+cargo run -p horizcoin-node
+
+# Explore available CLI commands
+cargo run -p horiz-cli -- --help
+```
 
 # In another terminal, create a wallet and send a transaction
 cargo run --bin horiz-cli -- wallet create

@@ -1,0 +1,19 @@
+[package]
+name = "horizcoin-node"
+description = "`HorizCoin` blockchain node"
+readme = "README.md"
+keywords = ["blockchain", "node", "cryptocurrency"]
+categories = ["cryptography::cryptocurrencies"]
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+authors.workspace = true
+
+[lints]
+workspace = true
+
+[[bin]]
+name = "horizcoin-node"
+path = "src/main.rs"

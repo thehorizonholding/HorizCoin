@@ -1,0 +1,14 @@
+[package]
+name = "horizcoin-storage"
+description = "Persistent storage layer for HorizCoin"
+keywords = ["storage", "database", "persistence"]
+categories = ["database-implementations"]
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+authors.workspace = true
+
+[lints]
+workspace = true
