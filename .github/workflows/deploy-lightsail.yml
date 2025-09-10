@@ -1,0 +1,135 @@
+name: Deploy to AWS Lightsail
+
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+    inputs:
+      service_name:
+        description: "Lightsail service name (optional; defaults to LIGHTSAIL_SERVICE_NAME secret or 'horizcoin-web')"
+        required: false
+      region:
+        description: "AWS region (optional; defaults to AWS_REGION secret)"
+        required: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      IMAGE_NAME: horizcoin-web
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ inputs.region || secrets.AWS_REGION }}
+
+      - name: Resolve service name and region
+        id: cfg
+        shell: bash
+        run: |
+          SERVICE_NAME="${{ github.event.inputs.service_name }}"
+          if [ -z "$SERVICE_NAME" ]; then SERVICE_NAME="${{ secrets.LIGHTSAIL_SERVICE_NAME }}"; fi
+          if [ -z "$SERVICE_NAME" ]; then SERVICE_NAME="horizcoin-web"; fi
+          REGION="${{ github.event.inputs.region }}"
+          if [ -z "$REGION" ]; then REGION="${{ secrets.AWS_REGION }}"; fi
+          echo "service_name=$SERVICE_NAME" >> $GITHUB_OUTPUT
+          echo "region=$REGION" >> $GITHUB_OUTPUT
+
+      - name: Ensure Lightsail container service exists
+        shell: bash
+        run: |
+          set -e
+          SVC="${{ steps.cfg.outputs.service_name }}"
+          REGION="${{ steps.cfg.outputs.region }}"
+          echo "Ensuring Lightsail service '$SVC' exists in $REGION..."
+          aws lightsail create-container-service \
+            --service-name "$SVC" \
+            --power small \
+            --scale 1 \
+            --region "$REGION" \
+            >/dev/null 2>&1 || echo "Service already exists or creation skipped."
+
+      - name: Build Docker image
+        run: |
+          docker build -t $IMAGE_NAME .
+
+      - name: Push image to Lightsail
+        id: push
+        shell: bash
+        run: |
+          SVC="${{ steps.cfg.outputs.service_name }}"
+          REGION="${{ steps.cfg.outputs.region }}"
+          # Push returns JSON with 'image' and 'imageDigest'. 
+          # The 'image' label to use in deployments is ':web' when --label web
+          OUT=$(aws lightsail push-container-image \
+            --service-name "$SVC" \
+            --label web \
+            --image $IMAGE_NAME \
+            --region "$REGION")
+          echo "$OUT" | jq -r '.'
+
+      - name: Create deployment (containers and public endpoint)
+        id: deploy
+        shell: bash
+        run: |
+          set -e
+          SVC="${{ steps.cfg.outputs.service_name }}"
+          REGION="${{ steps.cfg.outputs.region }}"
+          cat > containers.json << 'JSON'
+          {
+            "web": {
+              "image": ":web",
+              "environment": { "PORT": "3000" },
+              "ports": { "3000": "HTTP" }
+            }
+          }
+          JSON
+          cat > endpoint.json << 'JSON'
+          {
+            "containerName": "web",
+            "containerPort": 3000,
+            "healthCheck": {
+              "path": "/healthz",
+              "intervalSeconds": 10,
+              "timeoutSeconds": 5,
+              "healthyThreshold": 2,
+              "unhealthyThreshold": 2
+            }
+          }
+          JSON
+          aws lightsail create-container-service-deployment \
+            --service-name "$SVC" \
+            --containers file://containers.json \
+            --public-endpoint file://endpoint.json \
+            --region "$REGION"
+
+      - name: Wait for public URL
+        id: url
+        shell: bash
+        run: |
+          SVC="${{ steps.cfg.outputs.service_name }}"
+          REGION="${{ steps.cfg.outputs.region }}"
+          echo "Waiting for service URL..."
+          for i in {1..30}; do
+            URL=$(aws lightsail get-container-services \
+              --service-name "$SVC" \
+              --region "$REGION" \
+              --query 'containerServices[0].url' \
+              -o text 2>/dev/null || true)
+            if [ -n "$URL" ] && [ "$URL" != "None" ]; then
+              echo "url=$URL" >> $GITHUB_OUTPUT
+              echo "Public URL: $URL" >> $GITHUB_STEP_SUMMARY
+              echo "Health: ${URL}/healthz" >> $GITHUB_STEP_SUMMARY
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "Failed to retrieve public URL within timeout" >&2
+          exit 1
