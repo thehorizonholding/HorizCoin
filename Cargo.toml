@@ -1,22 +1,24 @@
 [workspace]
 resolver = "2"
 members = [
-    "crates/primitives",
-    "crates/crypto", 
-    "crates/codec",
-    "crates/tx",
-    "crates/merkle",
-    "crates/block",
-    "crates/state",
-    "crates/storage",
-    "crates/consensus",
-    "crates/p2p",
-    "crates/mempool", 
-    "crates/rpc",
-    "crates/wallet",
-    "crates/testutil",
-    "bins/node",
-    "bins/horiz-cli",
+    # Note: Other crates and bins are planned but not yet implemented
+    # "crates/primitives",
+    # "crates/crypto", 
+    # "crates/codec",
+    # "crates/tx",
+    # "crates/merkle",
+    # "crates/block",
+    # "crates/state",
+    # "crates/storage",
+    # "crates/consensus",
+    # "crates/p2p",
+    # "crates/mempool", 
+    # "crates/rpc",
+    # "crates/wallet",
+    # "crates/testutil",
+    # "bins/node",
+    # "bins/horiz-cli",
+    "bins/server",
 ]
 
 [workspace.package]
@@ -87,21 +89,21 @@ futures = "0.3"
 # BIP39 for wallet
 bip39 = "2.0"
 
-# Local crates
-horizcoin-primitives = { path = "crates/primitives" }
-horizcoin-crypto = { path = "crates/crypto" }
-horizcoin-codec = { path = "crates/codec" }
-horizcoin-tx = { path = "crates/tx" }
-horizcoin-merkle = { path = "crates/merkle" }
-horizcoin-block = { path = "crates/block" }
-horizcoin-state = { path = "crates/state" }
-horizcoin-storage = { path = "crates/storage" }
-horizcoin-consensus = { path = "crates/consensus" }
-horizcoin-p2p = { path = "crates/p2p" }
-horizcoin-mempool = { path = "crates/mempool" }
-horizcoin-rpc = { path = "crates/rpc" }
-horizcoin-wallet = { path = "crates/wallet" }
-horizcoin-testutil = { path = "crates/testutil" }
+# Local crates - commented out until implemented
+# horizcoin-primitives = { path = "crates/primitives" }
+# horizcoin-crypto = { path = "crates/crypto" }
+# horizcoin-codec = { path = "crates/codec" }
+# horizcoin-tx = { path = "crates/tx" }
+# horizcoin-merkle = { path = "crates/merkle" }
+# horizcoin-block = { path = "crates/block" }
+# horizcoin-state = { path = "crates/state" }
+# horizcoin-storage = { path = "crates/storage" }
+# horizcoin-consensus = { path = "crates/consensus" }
+# horizcoin-p2p = { path = "crates/p2p" }
+# horizcoin-mempool = { path = "crates/mempool" }
+# horizcoin-rpc = { path = "crates/rpc" }
+# horizcoin-wallet = { path = "crates/wallet" }
+# horizcoin-testutil = { path = "crates/testutil" }
 
 # Linting configuration
 [workspace.lints.rust]

@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: horizcoin-server
+    env: docker
+    dockerfilePath: ./Dockerfile
+    autoDeploy: true
+    plan: free
+    healthCheckPath: /healthz
+    envVars:
+      - key: PORT
+        fromService:
+          type: web
+          name: horizcoin-server
+          property: port
