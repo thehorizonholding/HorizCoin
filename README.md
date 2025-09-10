@@ -178,6 +178,37 @@ cargo fuzz run tx_verify
 - [Contributing Guide](CONTRIBUTING.md) - Development workflow and guidelines
 - [Security Policy](SECURITY.md) - Security reporting and practices
 
+## Public deployment (AWS Lightsail)
+
+This repository includes automation to deploy the web demo (`horizcoin-web`) to AWS Lightsail Containers and expose a public URL.
+
+Prerequisites
+- An AWS account and an IAM access key with Lightsail permissions (recommended policy: `AmazonLightsailFullAccess` for a dedicated CI user).
+
+Repository secrets
+- `AWS_ACCESS_KEY_ID` – from the IAM user
+- `AWS_SECRET_ACCESS_KEY` – from the IAM user
+- `AWS_REGION` – e.g., `us-east-1`
+- Optional: `LIGHTSAIL_SERVICE_NAME` – defaults to `horizcoin-web`
+
+Deploy
+- Push to `main`, or
+- Manually run the "Deploy to AWS Lightsail" workflow from the Actions tab (you can provide `service_name` and `region`).
+
+Result
+- After the workflow completes, the app will be available at `https://<generated>.<region>.cs.amazonlightsail.com`.
+- Health check: `https://<generated>.<region>.cs.amazonlightsail.com/healthz`.
+
+Troubleshooting
+- Verify the workflow run summary for the printed public URL.
+- Ensure the container listens on `PORT=3000` and `/healthz` returns HTTP 200 locally:
+  ```bash
+  cargo run -p horizcoin-web
+  # or with Docker
+  docker build -t horizcoin-web .
+  docker run -p 3000:3000 -e PORT=3000 horizcoin-web
+  ```
+
 ## Economic Design
 
 HorizCoin targets a novel Proof-of-Bandwidth consensus mechanism designed for long-term sustainability. The economic model aims for $80T total economic activity over 10 years (see [issue #33](https://github.com/thehorizonholding/HorizCoin/issues/33) for detailed analysis). However, the current implementation keeps consensus pluggable and does not couple economic parameters to core hashing or validation logic.
