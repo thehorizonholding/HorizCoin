@@ -1,0 +1,17 @@
+[package]
+name = "horiz-cli"
+description = "Command-line interface for `HorizCoin`"
+readme = "README.md"
+keywords = ["cli", "command-line", "blockchain"]
+categories = ["command-line-utilities"]
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+authors.workspace = true
+
+
+[[bin]]
+name = "horiz-cli"
+path = "src/main.rs"

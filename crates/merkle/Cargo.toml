@@ -1,0 +1,12 @@
+[package]
+name = "horizcoin-merkle"
+description = "Merkle tree implementation for HorizCoin"
+keywords = ["merkle-tree", "cryptography", "blockchain"]
+categories = ["algorithms"]
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+authors.workspace = true
+

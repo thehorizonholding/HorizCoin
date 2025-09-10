@@ -1,0 +1,12 @@
+[package]
+name = "horizcoin-p2p"
+description = "Peer-to-peer networking layer"
+keywords = ["p2p", "networking", "libp2p"]
+categories = ["network-programming"]
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+authors.workspace = true
+
