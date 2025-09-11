@@ -1,0 +1,98 @@
+name: Ephemeral Preview (Cloudflare Tunnel)
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - ".github/workflows/ephemeral-preview.yml"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 355
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust (stable)
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Build horizcoin-web (release)
+        run: |
+          cargo build --release -p horizcoin-web
+
+      - name: Start horizcoin-web
+        env:
+          PORT: "3000"
+        run: |
+          nohup target/release/horizcoin-web > server.log 2>&1 &
+          echo $! > server.pid
+          echo "Waiting for app to be ready on :3000..."
+          for i in {1..120}; do
+            if curl -fsS http://localhost:3000/healthz >/dev/null 2>&1; then
+              echo "App is healthy."
+              break
+            fi
+            sleep 2
+          done
+
+      - name: Download cloudflared
+        run: |
+          curl -sL https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o cloudflared
+          chmod +x cloudflared
+
+      - name: Start public tunnel
+        id: tunnel
+        env:
+          TUNNEL_LOG: tunnel.log
+        run: |
+          set -e
+          ./cloudflared tunnel --url http://localhost:3000 --no-autoupdate > "$TUNNEL_LOG" 2>&1 &
+          TUNNEL_PID=$!
+          echo $TUNNEL_PID > tunnel.pid
+
+          echo "Waiting for public URL..."
+          for i in {1..120}; do
+            URL=$(grep -Eo 'https://[a-zA-Z0-9.-]+\.trycloudflare\.com' "$TUNNEL_LOG" | tail -n1 || true)
+            if [ -n "$URL" ]; then
+              echo "url=$URL" >> "$GITHUB_OUTPUT"
+              echo "Public URL: $URL" >> "$GITHUB_STEP_SUMMARY"
+              echo "Health: ${URL}/healthz" >> "$GITHUB_STEP_SUMMARY"
+              echo "$URL" > PUBLIC_PREVIEW_URL.txt
+              break
+            fi
+            sleep 2
+          done
+
+          if [ ! -s PUBLIC_PREVIEW_URL.txt ]; then
+            echo "Failed to obtain public URL" >&2
+            exit 1
+          fi
+
+      - name: Commit URL back to repo ([skip ci])
+        if: steps.tunnel.outputs.url != ''
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add PUBLIC_PREVIEW_URL.txt
+          git commit -m "chore: publish ephemeral preview URL [skip ci]" || true
+          git push
+
+      - name: Upload logs (artifact)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: preview-logs
+          path: |
+            server.log
+            tunnel.log
+
+      - name: Keep preview alive (~5h)
+        run: |
+          echo "Preview is live at: $(cat PUBLIC_PREVIEW_URL.txt)" >> $GITHUB_STEP_SUMMARY
+          echo "Keeping the tunnel alive for ~5 hours..."
+          sleep 18000
