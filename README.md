@@ -178,6 +178,44 @@ cargo fuzz run tx_verify
 - [Contributing Guide](CONTRIBUTING.md) - Development workflow and guidelines
 - [Security Policy](SECURITY.md) - Security reporting and practices
 
+## Vercel Deployment
+
+**Framework Detected**: Rust web application using Axum with static build generation
+
+This repository is configured for deployment on Vercel with a static build that generates the homepage as a standalone HTML file.
+
+### How to Deploy
+
+1. **Automatic Preview Deployments**: Any PR will automatically create a Preview deployment on Vercel
+2. **Promote to Production**: After this PR creates a successful Preview deployment:
+   - Go to your Vercel dashboard
+   - Find the Preview deployment for this PR
+   - Click "Promote to Production" to make it live at your production domain
+
+### Fix Current 404 Error
+
+The production domain `https://horiz-coin.vercel.app/` currently returns 404 with `DEPLOYMENT_NOT_FOUND` because:
+- The Production alias is pointing to a missing/invalid deployment
+- After this PR builds as a Preview, promote it to Production in Vercel
+- If Production still shows errors, go to Project → Settings → Domains and remove/re-add the domain, or simply promote the latest Ready Preview
+
+### Local Testing
+
+To test the static build locally:
+
+```bash
+# Generate the static build
+npm install
+npm run build
+
+# Serve the static files
+cd dist
+python3 -m http.server 8080
+# Visit http://localhost:8080
+```
+
+The static build generates the same homepage content as the Rust server but as a standalone HTML file suitable for Vercel's static hosting.
+
 ## Public deployment (AWS Lightsail)
 
 This repository includes automation to deploy the web demo (`horizcoin-web`) to AWS Lightsail Containers and expose a public URL.
