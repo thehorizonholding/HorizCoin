@@ -1,0 +1,11 @@
+{
+  "name": "horizcoin-web",
+  "version": "0.1.0",
+  "description": "HorizCoin Web Interface",
+  "scripts": {
+    "build": "node build.js"
+  },
+  "devDependencies": {
+    "fs-extra": "^11.1.1"
+  }
+}
