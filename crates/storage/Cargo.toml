@@ -12,3 +12,9 @@ authors.workspace = true
 workspace = true
 
 [dependencies]
+serde = { workspace = true }
+thiserror = { workspace = true }
+horizcoin-primitives = { workspace = true }
+horizcoin-codec = { workspace = true }
+rocksdb = { workspace = true }
+tempfile = { workspace = true }
