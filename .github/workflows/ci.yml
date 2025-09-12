@@ -47,3 +47,43 @@ jobs:
       run: |
         cargo run -p horizcoin-node
         cargo run -p horiz-cli -- --help
+
+  wallet-extension:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+        cache-dependency-path: 'packages/wallet-extension/package-lock.json'
+    
+    - name: Install wallet extension dependencies
+      run: |
+        cd packages/wallet-extension
+        npm ci
+    
+    - name: Type check wallet extension
+      run: |
+        cd packages/wallet-extension
+        npm run type-check
+    
+    - name: Test wallet extension
+      run: |
+        cd packages/wallet-extension
+        npm run test
+    
+    - name: Build wallet extension
+      run: |
+        cd packages/wallet-extension
+        npm run build
+    
+    - name: Upload wallet extension artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: wallet-extension
+        path: packages/wallet-extension/dist/
+        retention-days: 30

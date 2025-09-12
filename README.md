@@ -251,6 +251,111 @@ Troubleshooting
 
 HorizCoin targets a novel Proof-of-Bandwidth consensus mechanism designed for long-term sustainability. The economic model aims for $80T total economic activity over 10 years (see [issue #33](https://github.com/thehorizonholding/HorizCoin/issues/33) for detailed analysis). However, the current implementation keeps consensus pluggable and does not couple economic parameters to core hashing or validation logic.
 
+## Wallet
+
+HorizCoin includes a browser extension wallet that provides secure key management and dApp integration. The wallet supports both HorizCoin-specific and Ethereum-compatible methods for maximum compatibility.
+
+### Features
+
+- **Secure Key Storage**: All private keys are stored locally using Web Crypto API (PBKDF2 + AES-GCM)
+- **dApp Integration**: EIP-1193 compatible provider injection for seamless dApp interaction
+- **Network Management**: Configurable networks with support for custom RPC endpoints
+- **Account Management**: Create, import, and manage multiple accounts from a single mnemonic
+- **Message Signing**: Sign arbitrary messages and transactions
+- **Auto-lock**: Configurable auto-lock timer for enhanced security
+
+### Building the Wallet
+
+```bash
+# Navigate to wallet extension
+cd packages/wallet-extension
+
+# Install dependencies
+npm install
+
+# Build the extension
+npm run build
+
+# Run tests
+npm run test
+```
+
+### Loading the Extension
+
+#### Chrome/Edge
+1. Open `chrome://extensions/` (or `edge://extensions/`)
+2. Enable "Developer mode"
+3. Click "Load unpacked"
+4. Select the `packages/wallet-extension/dist/` folder
+
+#### Firefox
+1. Open `about:debugging`
+2. Click "This Firefox"
+3. Click "Load Temporary Add-on"
+4. Select any file in the `packages/wallet-extension/dist/` folder
+
+### Testing with Example dApp
+
+1. Load the extension in your browser (see above)
+2. Open `examples/dapp/index.html` in your browser
+3. Create or import a wallet in the extension
+4. Test the connection and provider methods
+
+### Provider Usage
+
+The wallet injects both `window.horizcoin` and `window.ethereum` providers:
+
+```javascript
+// Connect to wallet
+const accounts = await window.horizcoin.request({ 
+  method: 'hc_requestAccounts' 
+})
+
+// Get current network
+const chainId = await window.horizcoin.request({ 
+  method: 'hc_chainId' 
+})
+
+// Sign a message
+const signature = await window.horizcoin.request({
+  method: 'hc_signMessage',
+  params: ['Hello HorizCoin!', accounts[0]]
+})
+
+// Send a transaction
+const txHash = await window.horizcoin.request({
+  method: 'hc_sendTransaction',
+  params: [{
+    from: accounts[0],
+    to: '0x742d35cc6634c0532925a3b8d0b5be9c29e22d8c',
+    value: '0x38d7ea4c68000' // 0.001 HRZ
+  }]
+})
+```
+
+### Supported Methods
+
+| Method | HorizCoin | Ethereum | Description |
+|--------|-----------|----------|-------------|
+| Request Accounts | `hc_requestAccounts` | `eth_requestAccounts` | Connect wallet |
+| Get Accounts | `hc_accounts` | `eth_accounts` | Get connected accounts |
+| Chain ID | `hc_chainId` | `eth_chainId` | Get current network |
+| Sign Message | `hc_signMessage` | `personal_sign` | Sign arbitrary message |
+| Send Transaction | `hc_sendTransaction` | `eth_sendTransaction` | Send transaction |
+
+### Architecture
+
+For detailed information about the wallet architecture, security model, and development guidelines, see [docs/wallet-architecture.md](docs/wallet-architecture.md).
+
+### Security Notice
+
+⚠️ **This is experimental software. Do not use with real funds or on mainnet.**
+
+- Private keys are stored locally and never transmitted
+- Always verify transaction details before signing
+- Keep your password and recovery phrase secure
+- This wallet is for development and testing purposes only
+
 ## License
 
 Licensed under either of

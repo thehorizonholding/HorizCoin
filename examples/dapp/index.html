@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HorizCoin dApp Example</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <div class="container mx-auto px-4 py-8 max-w-4xl">
+        <header class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-gray-900 mb-2">HorizCoin dApp Example</h1>
+            <p class="text-gray-600">Test the HorizCoin wallet extension integration</p>
+        </header>
+
+        <!-- Connection Status -->
+        <div class="bg-white rounded-lg shadow p-6 mb-6">
+            <h2 class="text-xl font-semibold mb-4">Connection Status</h2>
+            <div id="connectionStatus" class="flex items-center space-x-2">
+                <div id="statusIndicator" class="w-3 h-3 rounded-full bg-red-500"></div>
+                <span id="statusText" class="text-gray-600">Not connected</span>
+            </div>
+            <div id="accountInfo" class="mt-4 hidden">
+                <p class="text-sm text-gray-500">Connected Account:</p>
+                <p id="connectedAccount" class="font-mono text-sm bg-gray-100 px-2 py-1 rounded"></p>
+            </div>
+        </div>
+
+        <!-- Provider Detection -->
+        <div class="bg-white rounded-lg shadow p-6 mb-6">
+            <h2 class="text-xl font-semibold mb-4">Provider Detection</h2>
+            <div class="space-y-2">
+                <div class="flex items-center justify-between">
+                    <span>window.horizcoin</span>
+                    <span id="horizcoinStatus" class="text-red-600">❌</span>
+                </div>
+                <div class="flex items-center justify-between">
+                    <span>window.ethereum</span>
+                    <span id="ethereumStatus" class="text-red-600">❌</span>
+                </div>
+                <div class="flex items-center justify-between">
+                    <span>HorizCoin Extension</span>
+                    <span id="extensionStatus" class="text-red-600">❌</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <!-- Connection -->
+            <div class="bg-white rounded-lg shadow p-6">
+                <h3 class="text-lg font-semibold mb-4">Connection</h3>
+                <div class="space-y-3">
+                    <button id="connectBtn" class="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 disabled:opacity-50">
+                        Connect Wallet
+                    </button>
+                    <button id="disconnectBtn" class="w-full bg-gray-600 text-white py-3 px-4 rounded-lg hover:bg-gray-700 disabled:opacity-50" disabled>
+                        Disconnect
+                    </button>
+                </div>
+            </div>
+
+            <!-- Account Info -->
+            <div class="bg-white rounded-lg shadow p-6">
+                <h3 class="text-lg font-semibold mb-4">Account Info</h3>
+                <div class="space-y-3">
+                    <button id="getAccountsBtn" class="w-full bg-green-600 text-white py-3 px-4 rounded-lg hover:bg-green-700 disabled:opacity-50" disabled>
+                        Get Accounts
+                    </button>
+                    <button id="getChainIdBtn" class="w-full bg-purple-600 text-white py-3 px-4 rounded-lg hover:bg-purple-700 disabled:opacity-50" disabled>
+                        Get Chain ID
+                    </button>
+                </div>
+            </div>
+
+            <!-- Signing -->
+            <div class="bg-white rounded-lg shadow p-6">
+                <h3 class="text-lg font-semibold mb-4">Message Signing</h3>
+                <div class="space-y-3">
+                    <input type="text" id="messageInput" placeholder="Enter message to sign" class="w-full border border-gray-300 rounded px-3 py-2" value="Hello HorizCoin!">
+                    <button id="signMessageBtn" class="w-full bg-orange-600 text-white py-3 px-4 rounded-lg hover:bg-orange-700 disabled:opacity-50" disabled>
+                        Sign Message
+                    </button>
+                </div>
+            </div>
+
+            <!-- Transactions -->
+            <div class="bg-white rounded-lg shadow p-6">
+                <h3 class="text-lg font-semibold mb-4">Transactions</h3>
+                <div class="space-y-3">
+                    <input type="text" id="toAddress" placeholder="To address" class="w-full border border-gray-300 rounded px-3 py-2" value="0x742d35cc6634c0532925a3b8d0b5be9c29e22d8c">
+                    <input type="text" id="amount" placeholder="Amount" class="w-full border border-gray-300 rounded px-3 py-2" value="0.001">
+                    <button id="sendTxBtn" class="w-full bg-red-600 text-white py-3 px-4 rounded-lg hover:bg-red-700 disabled:opacity-50" disabled>
+                        Send Transaction
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Event Log -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <h2 class="text-xl font-semibold mb-4">Event Log</h2>
+            <div id="eventLog" class="bg-gray-100 rounded p-4 h-64 overflow-y-auto font-mono text-sm">
+                <div class="text-gray-500">Waiting for events...</div>
+            </div>
+            <button id="clearLogBtn" class="mt-3 text-sm text-gray-500 hover:text-gray-700">Clear Log</button>
+        </div>
+
+        <!-- Provider API Reference -->
+        <div class="bg-white rounded-lg shadow p-6 mt-6">
+            <h2 class="text-xl font-semibold mb-4">Provider API Reference</h2>
+            <div class="space-y-4 text-sm">
+                <div>
+                    <h3 class="font-semibold">Connection Methods</h3>
+                    <ul class="list-disc list-inside space-y-1 text-gray-600 ml-4">
+                        <li><code>eth_requestAccounts</code> / <code>hc_requestAccounts</code> - Request account access</li>
+                        <li><code>eth_accounts</code> / <code>hc_accounts</code> - Get connected accounts</li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h3 class="font-semibold">Network Methods</h3>
+                    <ul class="list-disc list-inside space-y-1 text-gray-600 ml-4">
+                        <li><code>eth_chainId</code> / <code>hc_chainId</code> - Get current chain ID</li>
+                        <li><code>net_version</code> / <code>hc_networkVersion</code> - Get network version</li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h3 class="font-semibold">Signing Methods</h3>
+                    <ul class="list-disc list-inside space-y-1 text-gray-600 ml-4">
+                        <li><code>personal_sign</code> / <code>hc_signMessage</code> - Sign a message</li>
+                        <li><code>eth_sendTransaction</code> / <code>hc_sendTransaction</code> - Send transaction</li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h3 class="font-semibold">Events</h3>
+                    <ul class="list-disc list-inside space-y-1 text-gray-600 ml-4">
+                        <li><code>connect</code> - Wallet connected</li>
+                        <li><code>disconnect</code> - Wallet disconnected</li>
+                        <li><code>accountsChanged</code> - Accounts changed</li>
+                        <li><code>chainChanged</code> - Network changed</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="dapp.js"></script>
+</body>
+</html>

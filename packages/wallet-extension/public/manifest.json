@@ -1,0 +1,42 @@
+{
+  "manifest_version": 3,
+  "name": "HorizCoin Wallet",
+  "version": "0.1.0",
+  "description": "Secure wallet for HorizCoin blockchain with dApp provider support",
+  "permissions": [
+    "storage",
+    "activeTab",
+    "scripting"
+  ],
+  "host_permissions": [
+    "http://localhost/*",
+    "https://localhost/*"
+  ],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": ["http://localhost/*", "https://localhost/*", "file://*/*"],
+      "js": ["content.js"],
+      "run_at": "document_start"
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "HorizCoin Wallet"
+  },
+  "options_page": "options.html",
+  "icons": {
+    "16": "icons/icon16.svg",
+    "48": "icons/icon48.svg", 
+    "128": "icons/icon128.svg"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["provider.js"],
+      "matches": ["http://localhost/*", "https://localhost/*", "file://*/*"]
+    }
+  ]
+}
