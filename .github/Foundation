@@ -1,0 +1,59 @@
+//! Modular KYC/AML Compliance Engine for HorizCoin
+
+/// Represents a user's compliance profile.
+pub struct KYCProfile {
+    pub user_id: String,
+    pub verified: bool,
+    pub jurisdiction: String,
+    pub risk_score: u8,
+}
+
+/// Trait for pluggable KYC provider integrations.
+pub trait KYCProvider {
+    /// Verify user identity and compliance for a jurisdiction.
+    fn verify(&self, user_id: &str, jurisdiction: &str) -> KYCProfile;
+}
+
+/// Example provider: integrate with external KYC API.
+pub struct ExternalKYCProvider {
+    pub api_endpoint: String,
+}
+
+impl KYCProvider for ExternalKYCProvider {
+    fn verify(&self, user_id: &str, jurisdiction: &str) -> KYCProfile {
+        // TODO: Integrate with a real API, handle errors, logging, caching.
+        // This is a stub returning dummy data for illustration.
+        KYCProfile {
+            user_id: user_id.to_owned(),
+            verified: false,
+            jurisdiction: jurisdiction.to_owned(),
+            risk_score: 100, // Highest risk by default for demo
+        }
+    }
+}
+
+/// Central registry for compliance providers.
+pub struct ComplianceEngine {
+    pub providers: Vec<Box<dyn KYCProvider>>,
+}
+
+impl ComplianceEngine {
+    pub fn new() -> Self {
+        ComplianceEngine { providers: vec![] }
+    }
+
+    pub fn add_provider(&mut self, provider: Box<dyn KYCProvider>) {
+        self.providers.push(provider);
+    }
+
+    /// Iterate providers, use first positive verification.
+    pub fn verify_user(&self, user_id: &str, jurisdiction: &str) -> Option<KYCProfile> {
+        for provider in &self.providers {
+            let profile = provider.verify(user_id, jurisdiction);
+            if profile.verified {
+                return Some(profile);
+            }
+        }
+        None
+    }
+}
