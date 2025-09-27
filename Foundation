@@ -1,0 +1,61 @@
+//! DAO Governance Module for HorizCoin
+
+/// A governance proposal within the DAO.
+pub struct Proposal {
+    pub id: u64,
+    pub title: String,
+    pub description: String,
+    pub proposer: String,
+    pub votes_for: u64,
+    pub votes_against: u64,
+    pub executed: bool,
+}
+
+/// The DAO governance struct. Tracks proposals and on-chain treasury balance.
+pub struct DAO {
+    pub proposals: Vec<Proposal>,
+    pub treasury: u128,
+}
+
+impl DAO {
+    /// Submit a new proposal.
+    pub fn submit_proposal(&mut self, title: String, description: String, proposer: String) -> u64 {
+        let proposal = Proposal {
+            id: self.proposals.len() as u64 + 1,
+            title,
+            description,
+            proposer,
+            votes_for: 0,
+            votes_against: 0,
+            executed: false,
+        };
+        self.proposals.push(proposal);
+        proposal.id
+    }
+
+    /// Cast a vote for a proposal.
+    pub fn vote_for(&mut self, proposal_id: u64) {
+        if let Some(proposal) = self.proposals.iter_mut().find(|p| p.id == proposal_id) {
+            proposal.votes_for += 1;
+        }
+    }
+
+    /// Cast a vote against a proposal.
+    pub fn vote_against(&mut self, proposal_id: u64) {
+        if let Some(proposal) = self.proposals.iter_mut().find(|p| p.id == proposal_id) {
+            proposal.votes_against += 1;
+        }
+    }
+
+    /// Execute proposal if it passes. (Stub: add logic for thresholds, audits, treasury actions, etc.)
+    pub fn execute_proposal(&mut self, proposal_id: u64) -> bool {
+        if let Some(proposal) = self.proposals.iter_mut().find(|p| p.id == proposal_id) {
+            if !proposal.executed && proposal.votes_for > proposal.votes_against {
+                proposal.executed = true;
+                // TODO: Add actual execution logic, treasury interaction, audits, etc.
+                return true;
+            }
+        }
+        false
+    }
+}
