@@ -1,0 +1,39 @@
+//! HorizCoin Node: Main entry point
+
+use std::fs;
+use std::net::{TcpListener, TcpStream};
+use std::io::{Read, Write};
+
+fn main() {
+    println!("HorizCoin node starting up...");
+
+    // Load config
+    let config = fs::read_to_string("config.yaml").expect("Missing config.yaml");
+
+    // Initialize modules (stub; replace with actual module initialization)
+    // compliance::init();
+    // treasury::init();
+    // dao::init();
+    // scaling::init();
+    // devhub::init();
+
+    // Start network listener (replace with real networking/protocol)
+    let listener = TcpListener::bind("0.0.0.0:30303").expect("Failed to bind port 30303");
+    println!("Node listening on port 30303");
+
+    // Simulate bandwidth mining loop
+    for stream in listener.incoming() {
+        match stream {
+            Ok(mut stream) => {
+                let mut buffer = [0; 4096];
+                let bytes = stream.read(&mut buffer).unwrap_or(0);
+                println!("Received {} bytes from peer.", bytes);
+                // Here you would run Proof-of-Bandwidth logic
+                stream.write_all(b"Bandwidth proof accepted\n").unwrap();
+            }
+            Err(e) => {
+                println!("Connection failed: {}", e);
+            }
+        }
+    }
+}
