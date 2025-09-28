@@ -1,0 +1,58 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: horizcoin-node
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: horizcoin-node
+  template:
+    metadata:
+      labels:
+        app: horizcoin-node
+    spec:
+      containers:
+      - name: horizcoin-node
+        image: yourrepo/horizcoin-node:latest
+        ports:
+        - containerPort: 30303
+        volumeMounts:
+        - name: config-volume
+          mountPath: /app/config.yaml
+          subPath: config.yaml
+      volumes:
+      - name: config-volume
+        configMap:
+          name: horizcoin-node-config
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: horizcoin-node-config
+data:
+  config.yaml: |
+    node_id: "YOUR_NODE_ID"
+    private_key: "YOUR_PRIVATE_KEY"
+    network:
+      listen_address: "0.0.0.0:30303"
+      bootstrap_peers:
+        - "node1.horizcoin.net:30303"
+        - "node2.horizcoin.net:30303"
+    bandwidth_target_mbps: 100
+    compliance:
+      kyc_enabled: true
+      jurisdictions:
+        - "US"
+        - "CH"
+        - "SG"
+    treasury:
+      multisig_signers:
+        - "signer1_pubkey"
+        - "signer2_pubkey"
+        - "signer3_pubkey"
+      required_signatures: 2
+    dao:
+      governance_threshold: 0.6
+    devhub:
+      grant_round_active: true
