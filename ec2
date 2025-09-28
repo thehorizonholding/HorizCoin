@@ -1,0 +1,13 @@
+import boto3
+
+def launch_node(image_id, instance_type, key_name, region):
+    ec2 = boto3.client('ec2', region_name=region)
+    response = ec2.run_instances(
+        ImageId=image_id,
+        InstanceType=instance_type,
+        KeyName=key_name,
+        MinCount=1,
+        MaxCount=1,
+        TagSpecifications=[{'ResourceType': 'instance', 'Tags': [{'Key': 'Project', 'Value': 'HorizCoin'}]}]
+    )
+    return response['Instances'][0]['InstanceId']
