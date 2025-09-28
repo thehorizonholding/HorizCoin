@@ -1,0 +1,97 @@
+*** a/README.md
+--- b/README.md
+@@
+- # HorizCoin
+-
+- HorizCoin is a blockchain protocol implementing a Proof-of-Bandwidth consensus mechanism. This repository contains the reference implementation of the HorizCoin node software, wallet, and development tools.
+-
+- ## Quick Start
+-
+- ### Prerequisites
+-
+-   * Rust 1.70+ with Cargo
+-   * Git
+- ### Building
+-
+-     # Clone the repository
+-     git clone https://github.com/thehorizonholding/HorizCoin.git
+-     cd HorizCoin
+-
+-     # Set Rust version for project
+-     rustup override set 1.70.0
+-
+-     # Build all components
+-     cargo build --workspace
+-
+-     # Run the node
+-     cargo run -p horizcoin-node
+-
+-     # Run the CLI (see help)
+-     cargo run -p horiz-cli -- --help
+-
+-     # Run tests
+-     cargo test
++ # HorizCoin
++
++ HorizCoin is a blockchain protocol implementing a Proof-of-Bandwidth consensus mechanism. This repository contains a reference implementation of the HorizCoin node, CLI tools, and a small web demo.
++
++ ## Quick Start (tested)
++
++ ### Prerequisites
++ - Rust (recommended: 1.70 via rustup; this project builds with `rustup override set 1.70.0`)
++ - Cargo (comes with Rust)
++ - Git
++ - Docker (for containerized builds)
++ - Node.js (LTS, recommended 18.x or 20.x) and npm (for the web UI)
++
++ **Tip:** Use rustup and nvm to pin toolchain versions for reproducible builds.
++
++ ### Build and run (local - Rust workspace)
++ ```bash
++ # Clone
++ git clone https://github.com/thehorizonholding/HorizCoin.git
++ cd HorizCoin
++
++ # Pin rust toolchain (optional)
++ rustup override set 1.70.0
++
++ # Build the full workspace
++ cargo build --workspace --release
++
++ # Run the node (example)
++ cargo run -p horizcoin-node --release
++ ```
++
++ ### Run the CLI
++ ```bash
++ # See flags and commands
++ cargo run -p horiz-cli -- --help
++ ```
++
++ ### Run the web demo (Node)
++ ```bash
++ cd web || true
++ npm install
++ npm run start
++ # or (production)
++ npm run build
++ npm start
++ ```
++
++ ### Docker (recommended for demo)
++ ```bash
++ docker build -t horizcoin-web .
++ docker run -p 3000:3000 -e PORT=3000 horizcoin-web
++ ```
++
++ ### Run tests
++ ```bash
++ cargo test --workspace
++ ```
++
++ ### Trouble-shooting
++ - If a build fails due to Rust edition or toolchain mismatch, run `rustup toolchain install 1.70.0`.
++ - If Node packages fail, remove `node_modules` and reinstall with `npm ci`.
++
++ ## License
++ This repository contains multiple license files (MIT and Apache). See `LICENSE-MIT` and `LICENSE-APACHE`. When using or redistributing, pick the license terms appropriate for your use case.
