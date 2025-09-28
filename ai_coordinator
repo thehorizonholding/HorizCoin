@@ -1,0 +1,9 @@
+import numpy as np
+from sklearn.ensemble import IsolationForest
+
+def detect_bandwidth_anomaly(bandwidth_history):
+    model = IsolationForest()
+    arr = np.array(bandwidth_history).reshape(-1, 1)
+    preds = model.fit_predict(arr)
+    anomalies = np.where(preds == -1)[0]
+    return anomalies.tolist()
