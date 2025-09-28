@@ -1,0 +1,81 @@
+//! AI Coordinator for HorizCoin: Automates deployment, monitoring, governance, and reporting.
+
+use std::collections::HashMap;
+
+pub struct NodeInfo {
+    pub node_id: String,
+    pub aws_instance_id: String,
+    pub ip_address: String,
+    pub status: NodeStatus,
+    pub bandwidth: u64,
+    pub compliance_ok: bool,
+}
+
+pub enum NodeStatus {
+    Running,
+    Stopped,
+    Error,
+}
+
+pub struct AICoordinator {
+    pub nodes: HashMap<String, NodeInfo>,
+    pub alerts: Vec<String>,
+}
+
+impl AICoordinator {
+    pub fn new() -> Self {
+        AICoordinator {
+            nodes: HashMap::new(),
+            alerts: vec![],
+        }
+    }
+
+    /// Deploys a new node on AWS (stubbed).
+    pub fn deploy_aws_node(&mut self, node_id: &str) {
+        // TODO: Integrate with AWS SDK, launch EC2 instance, save details.
+        let node = NodeInfo {
+            node_id: node_id.to_string(),
+            aws_instance_id: "i-xxxxxx".to_string(),
+            ip_address: "1.2.3.4".to_string(),
+            status: NodeStatus::Running,
+            bandwidth: 1000,
+            compliance_ok: true,
+        };
+        self.nodes.insert(node_id.to_string(), node);
+        self.alerts.push(format!("Node {} deployed on AWS.", node_id));
+    }
+
+    /// Monitors node status and bandwidth.
+    pub fn monitor_nodes(&mut self) {
+        for (_id, node) in self.nodes.iter_mut() {
+            // TODO: Implement network checks, compliance, health, bandwidth validation.
+            if node.bandwidth < 100 {
+                self.alerts.push(format!("Warning: Low bandwidth for node {}", node.node_id));
+            }
+        }
+    }
+
+    /// Runs compliance checks.
+    pub fn enforce_compliance(&mut self) {
+        for (_id, node) in self.nodes.iter_mut() {
+            // TODO: Integrate with compliance module.
+            node.compliance_ok = true; // Stub
+        }
+    }
+
+    /// Generates a report of node status and alerts.
+    pub fn generate_report(&self) -> String {
+        let mut report = String::from("HorizCoin AI Coordinator Report\n\n");
+        for node in self.nodes.values() {
+            report.push_str(&format!(
+                "Node: {} | AWS ID: {} | IP: {} | Status: {:?} | Bandwidth: {} Mbps | Compliance: {}\n",
+                node.node_id, node.aws_instance_id, node.ip_address, node.status, node.bandwidth, node.compliance_ok
+            ));
+        }
+        report.push_str("\nAlerts:\n");
+        for alert in &self.alerts {
+            report.push_str(&format!("- {}\n", alert));
+        }
+        report
+    }
+}
