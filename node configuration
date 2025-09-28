@@ -1,0 +1,26 @@
+# HorizCoin Node Configuration
+
+node_id: "YOUR_NODE_ID"
+private_key: "YOUR_PRIVATE_KEY"
+network:
+  listen_address: "0.0.0.0:30303"
+  bootstrap_peers:
+    - "node1.horizcoin.net:30303"
+    - "node2.horizcoin.net:30303"
+bandwidth_target_mbps: 100
+compliance:
+  kyc_enabled: true
+  jurisdictions:
+    - "US"
+    - "CH"
+    - "SG"
+treasury:
+  multisig_signers:
+    - "signer1_pubkey"
+    - "signer2_pubkey"
+    - "signer3_pubkey"
+  required_signatures: 2
+dao:
+  governance_threshold: 0.6
+devhub:
+  grant_round_active: true
