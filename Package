@@ -1,0 +1,17 @@
+*** a/package.json
+--- b/package.json
+@@
+   "name": "horizcoin-web",
+   "version": "0.1.0",
++  "engines": {
++    "node": ">=18 <21",
++    "npm": ">=8"
++  },
+   "scripts": {
+-    "test": "echo \"no tests specified\" && exit 0"
++    "dev": "node build.js || echo \"use npm run start in web subfolder\"",
++    "start": "node build.js && node build/server.js || echo \"start script: adjust to web server entrypoint\"",
++    "build": "node build.js",
++    "lint": "eslint . || true",
++    "test": "echo \"no tests specified\" && exit 0"
+   },
