@@ -1,0 +1,47 @@
+# HorizCoin Node Operator Guide
+
+## Prerequisites
+- Cloud server (AWS, GCP, Azure, Hetzner, OVH, etc.)
+- Docker or Rust toolchain installed
+- Reliable high-speed Ethernet connection (minimum 100Mbps up/down)
+
+## Setup Steps
+
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/thehorizonholding/HorizCoin.git
+   cd HorizCoin
+   ```
+
+2. **Edit `config.yaml`**
+   - Set your node ID, keys, bandwidth target, and peers.
+
+3. **Build and run the node**
+   - **Rust:**  
+     ```bash
+     cargo build --release
+     ./target/release/node
+     ```
+   - **Docker:**  
+     ```bash
+     docker build -t horizcoin-node .
+     docker run -p 30303:30303 -v $(pwd)/config.yaml:/app/config.yaml horizcoin-node
+     ```
+
+4. **Connect to bootstrap peers**
+   - Ensure your config lists at least one active peer.
+
+5. **Monitor logs**
+   - Logs will display bandwidth proofs and peer connections.
+   - For troubleshooting, check `/var/log/horizcoin-node.log` (if configured).
+
+## Security & Compliance
+
+- Ensure your firewall allows TCP port 30303
+- Use secure key handling (never share your private key)
+- Enable TLS for encrypted node-to-node communication (future release)
+
+## Support
+
+- For help, open an [issue on GitHub](https://github.com/thehorizonholding/HorizCoin/issues)
+- Join Discord or community forums for operator discussions
