@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+BRANCH="feature/full-bundle-foundation"
+git fetch origin || true
+
+if git rev-parse --verify "$BRANCH" >/dev/null 2>&1; then
+  git checkout "$BRANCH"
+else
+  git checkout -b "$BRANCH"
+fi
+
+echo "Writing files..."
+
+# You can copy the file blocks below manually instead if you prefer.
+# (For brevity this script only creates key directories)
+mkdir -p app/src/{app/api,server,instrumentation} infra/cdk/{bin,lib} .github/workflows
+
+# AFTER pasting the file contents manually into their paths:
+git add .
+git commit -m "feat: full foundation bundle with stripe + caching (closes #86)" || echo "Nothing to commit"
+git push origin "$BRANCH"
+echo "Branch pushed. Open PR now."
