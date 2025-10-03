@@ -1,0 +1,71 @@
+# HorizCoin Platform (Foundation Bundle)
+
+This commit introduces the complete initial foundation including:
+
+- Next.js 15 App Router + TypeScript
+- Prisma schema (Users, Orgs, Memberships, Projects, Items, Billing, FeatureFlag, UsageEvent)
+- Authentication: NextAuth (credentials) with JWT sessions
+- Security: Rate limiting (Redis), strict security headers + CSP nonce
+- Feature Flags: In-memory bootstrap + admin UI + API
+- Organizations: Create & list orgs, membership model
+- Projects & Items: Basic CRUD endpoints (list/create for now)
+- Billing: Stripe stub (checkout session route, webhook placeholder) & plan enforcement (project limit on free plan)
+- Caching: Redis-backed project list cache (60s) with invalidation on create
+- Observability: OpenTelemetry initialization placeholder
+- Infrastructure: CDK stack (Aurora Serverless Postgres, ECS, ALB), Dockerfile, docker-compose
+- Tooling: Makefile, CI (lint / typecheck / build / test), Deploy workflow scaffold
+
+Excluded (per current scope):
+- Password reset flow
+- Full Stripe subscription lifecycle
+- Persistent feature flag storage (DB model present but not wired)
+- OTel exporters (placeholder only)
+
+## Getting Started (Local)
+
+```bash
+docker compose up -d
+cd app
+cp ../.env.example .env
+npm install
+npx prisma migrate dev --name init
+npm run dev
+```
+
+Seed a user (replace hash with generated one):
+```bash
+node -e "require('bcryptjs').hash('StrongPass123!',10).then(h=>console.log(h))"
+```
+
+Insert:
+```sql
+INSERT INTO "User" (id,email,"hashedPassword","createdAt")
+VALUES ('usr_demo','demo@example.com','$2a$10$REPLACE_HASH',NOW());
+```
+
+## Environment Variables
+See `.env.example` for full list.
+
+## Project List Caching
+- Key: `user:projects:{userId}`
+- TTL: 60 seconds (adjust in cache.ts)
+- Invalidation on project create
+
+## Stripe Stub
+Endpoints:
+- POST `/api/billing/checkout` – placeholder checkout session
+- POST `/api/webhooks/stripe` – signature validation placeholder
+
+## Deployment
+- CI runs on PR / main
+- Deploy workflow builds image → CDK deploy (HTTP only unless ACM cert provided)
+
+## Next Steps (Suggested)
+1. Complete Stripe subscription lifecycle + webhook handlers
+2. Persist feature flags (CRUD + caching)
+3. Add invites + email service integration
+4. Implement password reset if required
+5. Add OTel exporters (trace + metrics)
+6. Add Playwright E2E tests
+7. Enforce project/org roles across endpoints
+8. ECS migration automation
