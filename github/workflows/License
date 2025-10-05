@@ -1,0 +1,14 @@
+This PR bootstraps the repository with:
+- CI workflow with conditional jobs for Shell, Node/Hardhat, and Foundry.
+- CODEOWNERS, PR/Issue templates, SECURITY.md, .editorconfig, .gitattributes.
+- Dependabot updates for GitHub Actions and npm.
+- Adds MIT LICENSE (only in saas-platform-exact-spelling-).
+
+Recommended branch protection (apply in Settings → Branches on the default branch):
+- Require at least 1 pull request review
+- Require status checks to pass before merging (include the "Checks" workflow)
+- Require branches to be up to date before merging
+- Require signed commits (if you use commit signing)
+- Require linear history
+- Block force pushes and branch deletions
+- Restrict who can push to protected branches (maintainers only)
