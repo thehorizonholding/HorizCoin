@@ -1,0 +1,8 @@
+# Normalize line endings
+* text=auto eol=lf
+
+# Treat shell scripts as text
+*.sh text eol=lf
+
+# Mark lockfiles as generated to reduce diff noise
+*.lock linguist-generated
