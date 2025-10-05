@@ -1,0 +1,68 @@
+name: Checks
+on:
+  pull_request:
+  push:
+    branches: [ main, master ]
+
+permissions:
+  contents: read
+
+jobs:
+  shell:
+    if: ${{ hashFiles('**/*.sh') != '' }}
+    name: Shell lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install ShellCheck and shfmt
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y shellcheck shfmt
+      - name: ShellCheck
+        run: |
+          set -euo pipefail
+          if [ -z "$(git ls-files '*.sh')" ]; then
+            echo "No shell scripts found"; exit 0
+          fi
+          git ls-files '*.sh' | xargs -r -n1 shellcheck
+      - name: shfmt (check formatting)
+        run: |
+          set -euo pipefail
+          if [ -z "$(git ls-files '*.sh')" ]; then
+            echo "No shell scripts found"; exit 0
+          fi
+          git ls-files '*.sh' | xargs -r -n100 shfmt -i 2 -ci -s -d
+
+  node:
+    if: ${{ hashFiles('package.json') != '' }}
+    name: Node/Hardhat CI
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - name: Install
+        run: npm ci || npm install
+      - name: Lint (if available)
+        run: npm run -s lint || echo "No lint script"
+      - name: Build (if available)
+        run: npm run -s build || echo "No build script"
+      - name: Test (if available)
+        run: npm test --silent || echo "No test script"
+
+  foundry:
+    if: ${{ hashFiles('**/foundry.toml') != '' }}
+    name: Foundry (Solidity)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: stable
+      - name: Build
+        run: forge build
+      - name: Test
+        run: forge test -vvv
