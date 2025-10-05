@@ -1,0 +1,17 @@
+## Summary
+- Describe the change and reasoning.
+
+## Type of change
+- [ ] Feature
+- [ ] Bug fix
+- [ ] Chore / Maintenance
+- [ ] Docs
+
+## Checklist
+- [ ] I’ve run the CI locally (if applicable).
+- [ ] I’ve added/updated tests (if applicable).
+- [ ] I’ve updated documentation (if applicable).
+- [ ] I’ve considered security, secrets, and sensitive data handling.
+- [ ] I’ve linked related issues and added context.
+
+## Screenshots / Demos (optional)
