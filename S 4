@@ -1,0 +1,27 @@
+# Multi-stage build for a small, secure image
+FROM rust:1.70-slim AS build
+WORKDIR /app
+RUN apt-get update && apt-get install -y pkg-config libssl-dev && rm -rf /var/lib/apt/lists/*
+
+# Prime dependency cache
+COPY services/coingecko-api/Cargo.toml services/coingecko-api/Cargo.toml
+RUN mkdir -p services/coingecko-api/src && echo "fn main(){}" > services/coingecko-api/src/main.rs
+RUN cargo build -p coingecko-api --release || true
+
+# Build actual binary
+COPY services/coingecko-api /app/services/coingecko-api
+WORKDIR /app/services/coingecko-api
+RUN cargo build --release
+
+# Minimal runtime image
+FROM gcr.io/distroless/cc-debian12
+ENV RUST_BACKTRACE=1
+ENV PORT=8080
+ENV CG_DEFAULT_IDS=horizcoin
+ENV CG_DEFAULT_VS=usd
+ENV COINGECKO_BASE_URL=https://api.coingecko.com/api/v3
+WORKDIR /srv
+COPY --from=build /app/services/coingecko-api/target/release/coingecko-api /usr/local/bin/coingecko-api
+USER 65532:65532
+EXPOSE 8080
+ENTRYPOINT ["/usr/local/bin/coingecko-api"]

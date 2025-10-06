@@ -1,0 +1,180 @@
+mod client;
+
+use axum::{
+    extract::{Path, Query},
+    http::StatusCode,
+    response::IntoResponse,
+    routing::get,
+    Json, Router,
+};
+use client::CGClient;
+use dashmap::DashMap;
+use once_cell::sync::Lazy;
+use serde::Deserialize;
+use serde_json::{json, Value};
+use std::{
+    net::SocketAddr,
+    time::{Duration, Instant},
+};
+use time::OffsetDateTime;
+use tracing::{error, info};
+use tracing_subscriber::{fmt, EnvFilter};
+
+#[derive(Clone)]
+struct CacheEntry {
+    ts: Instant,
+    data: Value,
+}
+
+static CACHE: Lazy<DashMap<String, CacheEntry>> = Lazy::new(DashMap::new);
+
+#[derive(Debug, Deserialize)]
+struct SimplePriceParams {
+    ids: Option<String>, // e.g., "bitcoin,ethereum" or "horizcoin"
+    vs: Option<String>,  // e.g., "usd,eur" or "usd"
+}
+
+#[derive(Debug, Deserialize)]
+struct MarketChartParams {
+    vs: Option<String>,   // default "usd"
+    days: Option<String>, // default "7"
+}
+
+#[tokio::main]
+async fn main() -> anyhow::Result<()> {
+    init_tracing();
+
+    let app = Router::new()
+        .route("/healthz", get(health))
+        .route("/v1/simple_price", get(simple_price))
+        .route("/v1/coins/:id/market_chart", get(market_chart));
+
+    let port = std::env::var("PORT")
+        .ok()
+        .and_then(|p| p.parse().ok())
+        .unwrap_or(8080);
+    let addr = SocketAddr::from(([0, 0, 0, 0], port));
+    info!("coingecko-api listening on {}", addr);
+    axum::Server::bind(&addr).serve(app.into_make_service()).await?;
+    Ok(())
+}
+
+fn init_tracing() {
+    let filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info"));
+    fmt().with_env_filter(filter).compact().init();
+}
+
+async fn health() -> impl IntoResponse {
+    (StatusCode::OK, Json(json!({"status":"ok"})))
+}
+
+async fn simple_price(Query(params): Query<SimplePriceParams>) -> impl IntoResponse {
+    let ids = params
+        .ids
+        .unwrap_or_else(|| std::env::var("CG_DEFAULT_IDS").unwrap_or_else(|_| "horizcoin".into()));
+    let vs = params
+        .vs
+        .unwrap_or_else(|| std::env::var("CG_DEFAULT_VS").unwrap_or_else(|_| "usd".into()));
+
+    let cache_key = format!("simple_price:{}:{}", ids, vs);
+    if let Some(entry) = CACHE.get(&cache_key) {
+        if entry.ts.elapsed() < Duration::from_secs(15) {
+            return (StatusCode::OK, Json(entry.data.clone()));
+        }
+    }
+
+    let client = match CGClient::new() {
+        Ok(c) => c,
+        Err(e) => {
+            error!("client init error: {}", e);
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({"error":"client_init_failed"})),
+            );
+        }
+    };
+
+    match client.simple_price(&ids, &vs).await {
+        Ok(mut json) => {
+            if let Value::Object(ref mut map) = json {
+                map.insert(
+                    "_meta".into(),
+                    json!({"ts_unix_ms": now_ms(), "source":"coingecko"}),
+                );
+            }
+            CACHE.insert(
+                cache_key,
+                CacheEntry {
+                    ts: Instant::now(),
+                    data: json.clone(),
+                },
+            );
+            (StatusCode::OK, Json(json))
+        }
+        Err(e) => {
+            error!("simple_price error: {}", e);
+            (
+                StatusCode::BAD_GATEWAY,
+                Json(json!({"error":"upstream_failed","detail":e.to_string()})),
+            )
+        }
+    }
+}
+
+async fn market_chart(
+    Path(id): Path<String>,
+    Query(params): Query<MarketChartParams>,
+) -> impl IntoResponse {
+    let vs = params
+        .vs
+        .unwrap_or_else(|| std::env::var("CG_DEFAULT_VS").unwrap_or_else(|_| "usd".into()));
+    let days = params.days.unwrap_or_else(|| "7".into());
+
+    let cache_key = format!("market_chart:{}:{}:{}", id, vs, days);
+    if let Some(entry) = CACHE.get(&cache_key) {
+        if entry.ts.elapsed() < Duration::from_secs(300) {
+            return (StatusCode::OK, Json(entry.data.clone()));
+        }
+    }
+
+    let client = match CGClient::new() {
+        Ok(c) => c,
+        Err(e) => {
+            error!("client init error: {}", e);
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({"error":"client_init_failed"})),
+            );
+        }
+    };
+
+    match client.market_chart(&id, &vs, &days).await {
+        Ok(mut json) => {
+            if let Value::Object(ref mut map) = json {
+                map.insert(
+                    "_meta".into(),
+                    json!({"ts_unix_ms": now_ms(), "source":"coingecko"}),
+                );
+            }
+            CACHE.insert(
+                cache_key,
+                CacheEntry {
+                    ts: Instant::now(),
+                    data: json.clone(),
+                },
+            );
+            (StatusCode::OK, Json(json))
+        }
+        Err(e) => {
+            error!("market_chart error: {}", e);
+            (
+                StatusCode::BAD_GATEWAY,
+                Json(json!({"error":"upstream_failed","detail":e.to_string()})),
+            )
+        }
+    }
+}
+
+fn now_ms() -> i64 {
+    (OffsetDateTime::now_utc().unix_timestamp_nanos() / 1_000_000) as i64
+}

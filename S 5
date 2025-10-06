@@ -1,0 +1,49 @@
+# coingecko-api
+
+Minimal CoinGecko proxy microservice with:
+- `GET /healthz` — health check
+- `GET /v1/simple_price?ids=horizcoin&vs=usd` — proxy of CoinGecko Simple Price with 15s cache
+- `GET /v1/coins/:id/market_chart?vs=usd&days=7` — proxy of Market Chart with 5m cache
+
+Adds `_meta.ts_unix_ms` and `_meta.source` to responses for observability.
+
+## Quick start
+
+```bash
+cd services/coingecko-api
+cargo run
+# Health
+curl -s http://localhost:8080/healthz | jq
+# Simple price (CSV supported)
+curl -s "http://localhost:8080/v1/simple_price?ids=horizcoin&vs=usd" | jq
+# Market chart (days: 1,7,30,90,180,365,max)
+curl -s "http://localhost:8080/v1/coins/horizcoin/market_chart?vs=usd&days=7" | jq
+```
+
+## Configuration
+
+Environment variables:
+- `PORT` (default `8080`)
+- `CG_DEFAULT_IDS` (default `horizcoin`) — used if `ids` not provided
+- `CG_DEFAULT_VS` (default `usd`) — used if `vs` not provided
+- `COINGECKO_BASE_URL` (default `https://api.coingecko.com/api/v3`)
+
+## Docker
+
+```bash
+docker build -t coingecko-api:latest -f services/coingecko-api/Dockerfile .
+docker run -p 8080:8080 --rm \
+  -e PORT=8080 \
+  -e CG_DEFAULT_IDS=horizcoin \
+  -e CG_DEFAULT_VS=usd \
+  coingecko-api:latest
+```
+
+## Deploy
+
+- Render: Create a new Web Service from this directory’s Dockerfile (free tier OK). Set env vars as needed.
+- Fly.io / Cloud Run / App Runner / Lightsail: Use the Dockerfile; expose port 8080; set env vars.
+
+## Notes
+
+- Public CoinGecko endpoints are rate-limited. This proxy adds in-memory caching (15s for `/simple_price`, 5m for `/market_chart`) to reduce upstream calls. For production, front it with a CDN (cache by query).
