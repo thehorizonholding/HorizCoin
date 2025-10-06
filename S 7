@@ -1,0 +1,29 @@
+bash -lc '
+set -euo pipefail
+REPO="thehorizonholding/HorizCoin"
+BR="feat/coingecko-api"
+
+# Clone if needed
+if [ ! -d HorizCoin ]; then gh repo clone "$REPO"; fi
+cd HorizCoin
+git fetch origin --prune
+git checkout -B main origin/main
+
+# Pick a unique branch name if it already exists remotely
+if git ls-remote --heads origin "$BR" | grep -q "$BR"; then
+  BR="feat/coingecko-api-$(date +%Y%m%d-%H%M%S)"
+fi
+git checkout -b "$BR"
+
+# Write files (copy from the chat into your working tree)
+# After pasting files into the indicated paths:
+git add services/coingecko-api .github/workflows/coingecko-api-ci.yml
+git commit -m "feat: add coingecko-api microservice (CoinGecko proxy with caching, health, Dockerfile)"
+git push -u origin "$BR"
+
+# Open PR with title/body
+gh pr create \
+  --title "feat: add coingecko-api microservice (CoinGecko proxy with caching, health, Dockerfile)" \
+  --body "Adds services/coingecko-api: a minimal CoinGecko proxy with health checks, 15s/5m caching, timeouts, and Dockerfile. Includes CI job to build the service. Endpoints: /healthz, /v1/simple_price, /v1/coins/:id/market_chart." \
+  --base main --head "$BR" -R "$REPO"
+'
