@@ -1,0 +1,68 @@
+use anyhow::{anyhow, Context, Result};
+use reqwest::Client;
+use serde_json::Value;
+use std::time::Duration;
+
+pub struct CGClient {
+    pub http: Client,
+    pub base: String,
+    pub timeout: Duration,
+}
+
+impl CGClient {
+    pub fn new() -> Result<Self> {
+        let base = std::env::var("COINGECKO_BASE_URL")
+            .unwrap_or_else(|_| "https://api.coingecko.com/api/v3".to_string());
+        let http = Client::builder()
+            .user_agent("horizcoin-coingecko-proxy/0.1")
+            .build()
+            .context("failed to build reqwest client")?;
+        Ok(Self {
+            http,
+            base,
+            timeout: Duration::from_secs(8),
+        })
+    }
+
+    pub async fn simple_price(&self, ids: &str, vs: &str) -> Result<Value> {
+        let url = format!("{}/simple/price", self.base);
+        let resp = self
+            .http
+            .get(&url)
+            .query(&[("ids", ids), ("vs_currencies", vs)])
+            .timeout(self.timeout)
+            .send()
+            .await
+            .context("coingecko simple_price request failed")?;
+
+        if !resp.status().is_success() {
+            return Err(anyhow!(
+                "coingecko simple_price non-200: {}",
+                resp.status()
+            ));
+        }
+        let json = resp.json::<Value>().await.context("bad simple_price json")?;
+        Ok(json)
+    }
+
+    pub async fn market_chart(&self, id: &str, vs: &str, days: &str) -> Result<Value> {
+        let url = format!("{}/coins/{}/market_chart", self.base, id);
+        let resp = self
+            .http
+            .get(&url)
+            .query(&[("vs_currency", vs), ("days", days)])
+            .timeout(self.timeout)
+            .send()
+            .await
+            .context("coingecko market_chart request failed")?;
+
+        if !resp.status().is_success() {
+            return Err(anyhow!(
+                "coingecko market_chart non-200: {}",
+                resp.status()
+            ));
+        }
+        let json = resp.json::<Value>().await.context("bad market_chart json")?;
+        Ok(json)
+    }
+}
