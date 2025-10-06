@@ -1,0 +1,14 @@
+FROM rust:1.70-slim AS build
+WORKDIR /app
+RUN apt-get update && apt-get install -y pkg-config libssl-dev && rm -rf /var/lib/apt/lists/*
+COPY services/ledger /app/services/ledger
+WORKDIR /app/services/ledger
+RUN cargo build --release
+
+FROM gcr.io/distroless/cc-debian12
+WORKDIR /srv
+ENV PORT=8090
+COPY --from=build /app/services/ledger/target/release/ledger /usr/local/bin/ledger
+USER 65532:65532
+EXPOSE 8090
+ENTRYPOINT ["/usr/local/bin/ledger"]
