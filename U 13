@@ -1,0 +1,14 @@
+FROM rust:1.70-slim AS build
+WORKDIR /app
+RUN apt-get update && apt-get install -y pkg-config libssl-dev && rm -rf /var/lib/apt/lists/*
+COPY services/payments-gateway /app/services/payments-gateway
+WORKDIR /app/services/payments-gateway
+RUN cargo build --release
+
+FROM gcr.io/distroless/cc-debian12
+WORKDIR /srv
+ENV PORT=8091
+COPY --from=build /app/services/payments-gateway/target/release/payments-gateway /usr/local/bin/payments-gateway
+USER 65532:65532
+EXPOSE 8091
+ENTRYPOINT ["/usr/local/bin/payments-gateway"]
