@@ -1,0 +1,27 @@
+{
+  "name": "HorizCoin Dev",
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu-24.04",
+  "features": {
+    "ghcr.io/devcontainers/features/github-cli:1": {},
+    "ghcr.io/devcontainers/features/rust:1": {
+      "version": "1.70.0"
+    },
+    "ghcr.io/devcontainers/features/common-utils:2": {
+      "username": "vscode",
+      "upgradePackages": true
+    }
+  },
+  "postCreateCommand": "sudo apt-get update && sudo apt-get install -y build-essential cmake clang pkg-config libssl-dev curl && cargo --version && gh --version",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "rust-lang.rust-analyzer",
+        "tamasfe.even-better-toml",
+        "ms-azuretools.vscode-docker",
+        "editorconfig.editorconfig",
+        "streetsidesoftware.code-spell-checker"
+      ]
+    }
+  },
+  "remoteUser": "vscode"
+}

@@ -1,0 +1,23 @@
+name: SBOM (CycloneDX)
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch: {}
+
+jobs:
+  sbom:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Generate SBOM (source)
+        uses: anchore/sbom-action@v0
+        with:
+          path: .
+          artifact-name: sbom-source-cyclonedx.json
+          format: cyclonedx-json
+      - name: Upload SBOM artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-source-cyclonedx
+          path: sbom-source-cyclonedx.json

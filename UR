@@ -1,0 +1,42 @@
+bash -lc '
+set -euo pipefail
+REPO="thehorizonholding/HorizCoin"
+BR="feat/platform-upgrade"
+
+# 1) Clone or enter repo
+if [ ! -d HorizCoin ]; then gh repo clone "$REPO"; fi
+cd HorizCoin
+
+# 2) Update main and create unique branch
+git fetch origin --prune
+git checkout -B main origin/main
+if git ls-remote --heads origin "$BR" | grep -q "$BR"; then
+  BR="feat/platform-upgrade-$(date +%Y%m%d-%H%M%S)"
+fi
+git checkout -b "$BR"
+
+# 3) Save the files from the message above into the indicated paths, then:
+git add .devcontainer \
+        .github/workflows/ci-matrix.yml \
+        .github/workflows/codeql.yml \
+        .github/workflows/sbom.yml \
+        .github/dependabot.yml \
+        .editorconfig \
+        Makefile \
+        Justfile \
+        docker-compose.yml \
+        services/ledger/Dockerfile \
+        services/payments-gateway/Dockerfile \
+        services/swift-adapter/Dockerfile \
+        services/exchange-engine/Dockerfile \
+        docs/TECH_STACK.md
+
+git commit -m "chore: platform upgrade (devcontainer, compose, CI matrix, CodeQL, SBOM, Dependabot, tooling)"
+git push -u origin "$BR"
+
+# 4) Open PR
+gh pr create \
+  --title "chore: platform upgrade (devcontainer, compose, CI matrix, CodeQL, SBOM, Dependabot, tooling)" \
+  --body "Adds developer platform upgrades:\n- DevContainer (VS Code/Codespaces)\n- docker-compose for local orchestration\n- Services CI matrix (Rust 1.70)\n- CodeQL scanning\n- SBOM (CycloneDX)\n- Dependabot for Actions/Cargo/Docker\n- EditorConfig, Makefile, Justfile\n- Dockerfiles for services\n\nThis standardizes tooling and speeds up local + CI workflows." \
+  --base main --head "$BR" -R "$REPO"
+'

@@ -1,0 +1,39 @@
+# GHCR Images
+
+This repository publishes multi-arch Docker images to the GitHub Container Registry (GHCR).
+
+- Registry: `ghcr.io/${OWNER}/horizcoin-<service>`
+- Architectures: `linux/amd64`, `linux/arm64`
+- Provenance and SBOM: attached via `docker/build-push-action` with `provenance: true` and `sbom: true`
+- Signing: Cosign keyless on tag builds (requires `id-token: write` permission, already set in the workflow)
+
+## Tags
+- On `main`:
+  - `edge`
+  - `sha-<git-sha>`
+- On semver tag (e.g., `v1.2.3`):
+  - `v1.2.3` (and standard ref tags)
+  - Cosign signature attached
+- On PRs:
+  - `pr-<number>` (builds but does not push when coming from forks)
+
+## Usage examples
+
+```bash
+# Pull pricing API image
+docker pull ghcr.io/${OWNER}/horizcoin-pricing-api:edge
+
+# Run locally
+docker run --rm -p 8081:8081 \
+  -e PORT=8081 \
+  ghcr.io/${OWNER}/horizcoin-pricing-api:edge
+```
+
+## Permissions
+
+Ensure the workflow’s GITHUB_TOKEN has:
+- `packages: write`
+- `contents: read`
+- `id-token: write` (for Cosign keyless signing)
+
+These are already set in `.github/workflows/ghcr-publish.yml`.

@@ -1,0 +1,27 @@
+# Run with: just <recipe>
+set shell := ["bash", "-uc"]
+
+toolchain:
+    rustup override set 1.70.0
+
+fmt:
+    cargo fmt --all
+
+build:
+    cargo build --workspace
+
+test:
+    cargo test --all --verbose
+
+services-build:
+    for d in services/*; do \
+      if [ -f "$$d/Cargo.toml" ]; then \
+        ( cd "$$d" && cargo build --release ); \
+      fi; \
+    done
+
+compose-up:
+    docker compose up -d --build
+
+compose-down:
+    docker compose down -v

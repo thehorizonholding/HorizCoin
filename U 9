@@ -1,0 +1,34 @@
+SHELL := /usr/bin/env bash
+RUST_TOOLCHAIN ?= 1.70.0
+
+.PHONY: toolchain
+toolchain:
+	rustup override set $(RUST_TOOLCHAIN)
+
+.PHONY: fmt
+fmt:
+	cargo fmt --all
+
+.PHONY: build
+build: toolchain
+	cargo build --workspace
+
+.PHONY: test
+test: toolchain
+	cargo test --all --verbose
+
+.PHONY: services-build
+services-build:
+	for d in services/*; do \
+		if [ -f "$$d/Cargo.toml" ]; then \
+			( cd "$$d" && cargo build --release ); \
+		fi \
+	done
+
+.PHONY: compose-up
+compose-up:
+	docker compose up -d --build
+
+.PHONY: compose-down
+compose-down:
+	docker compose down -v
