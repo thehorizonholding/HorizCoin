@@ -1,0 +1,82 @@
+version: "3.9"
+services:
+  horizcoin-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: horizcoin/server:dev
+    environment:
+      - PORT=8080
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
+
+  pricing-api:
+    build:
+      context: .
+      dockerfile: services/pricing-api/Dockerfile
+    image: horizcoin/pricing-api:dev
+    environment:
+      - PORT=8081
+      - COINGECKO_ID=horizcoin
+      - BINANCE_PAIR=HORIZUSDT
+    ports:
+      - "8081:8081"
+    restart: unless-stopped
+
+  coingecko-api:
+    build:
+      context: .
+      dockerfile: services/coingecko-api/Dockerfile
+    image: horizcoin/coingecko-api:dev
+    environment:
+      - PORT=8082
+      - CG_DEFAULT_IDS=horizcoin
+      - CG_DEFAULT_VS=usd
+    ports:
+      - "8082:8082"
+    restart: unless-stopped
+
+  ledger:
+    build:
+      context: .
+      dockerfile: services/ledger/Dockerfile
+    image: horizcoin/ledger:dev
+    environment:
+      - PORT=8090
+    ports:
+      - "8090:8090"
+    restart: unless-stopped
+
+  payments-gateway:
+    build:
+      context: .
+      dockerfile: services/payments-gateway/Dockerfile
+    image: horizcoin/payments-gateway:dev
+    environment:
+      - PORT=8091
+    ports:
+      - "8091:8091"
+    restart: unless-stopped
+
+  swift-adapter:
+    build:
+      context: .
+      dockerfile: services/swift-adapter/Dockerfile
+    image: horizcoin/swift-adapter:dev
+    environment:
+      - PORT=8092
+    ports:
+      - "8092:8092"
+    restart: unless-stopped
+
+  exchange-engine:
+    build:
+      context: .
+      dockerfile: services/exchange-engine/Dockerfile
+    image: horizcoin/exchange-engine:dev
+    environment:
+      - PORT=8093
+    ports:
+      - "8093:8093"
+    restart: unless-stopped
