@@ -1,0 +1,24 @@
+name: coingecko-api CI
+
+on:
+  push:
+    paths:
+      - "services/coingecko-api/**"
+      - ".github/workflows/coingecko-api-ci.yml"
+  pull_request:
+    paths:
+      - "services/coingecko-api/**"
+      - ".github/workflows/coingecko-api-ci.yml"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.70.0
+      - name: Build coingecko-api
+        run: |
+          cd services/coingecko-api
+          cargo build --release
