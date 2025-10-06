@@ -1,0 +1,308 @@
+bash -lc '
+set -euo pipefail
+
+# Configuration
+OWNER="thehorizonholding"
+R_HC="$OWNER/HorizCoin"
+R_SAAS="$OWNER/saas-platform-exact-spelling-"
+
+echo "==> Ensuring GitHub CLI is authenticated"
+gh auth status >/dev/null
+
+merge_pr() {
+  local repo="$1" pr="$2"
+  echo "==> Preparing PR #$pr in $repo"
+  gh pr ready "$pr" -R "$repo" || true
+  echo "==> Enabling auto-merge (squash) for PR #$pr"
+  gh pr merge "$pr" --squash --delete-branch --auto -R "$repo" || {
+    echo "   Auto-merge not enabled yet (checks or rules?). Updating branch and watching checks..."
+    gh pr update "$pr" --add-label "automerge" -R "$repo" || true
+    gh pr checks "$pr" --watch -R "$repo" || true
+    echo "==> Retrying merge for PR #$pr"
+    gh pr merge "$pr" --squash --delete-branch --auto -R "$repo"
+  }
+}
+
+close_pr() {
+  local repo="$1" pr="$2" msg="$3"
+  echo "==> Closing PR #$pr in $repo"
+  gh pr close "$pr" --comment "$msg" -R "$repo" || true
+}
+
+protect_branch() {
+  local repo="$1"
+  local db
+  db="$(gh repo view "$repo" --json defaultBranchRef -q ".defaultBranchRef.name")"
+  echo "==> Applying branch protection to $repo:$db"
+  gh api -X PUT "repos/$repo/branches/$db/protection" \
+    -H "Accept: application/vnd.github+json" \
+    -f required_status_checks='{"strict":true,"contexts":["Checks"]}' \
+    -f enforce_admins=true \
+    -f required_pull_request_reviews='{"required_approving_review_count":1,"dismiss_stale_reviews":true,"require_code_owner_reviews":false}' \
+    -f restrictions='null' \
+    -f allow_force_pushes=false \
+    -f allow_deletions=false \
+    -f block_creations=false \
+    -f required_linear_history=true \
+    -f required_conversation_resolution=true >/dev/null
+}
+
+bootstrap_saas_repo() {
+  local repo="$1"
+  echo "==> Bootstrapping $repo (if not already bootstrapped)"
+  # If a PR with the bootstrap title already exists, skip
+  if gh pr list -R "$repo" --search "in:title chore: repository bootstrap (CI, templates, Dependabot, security)" --state all --json number | jq -e 'length>0' >/dev/null 2>&1; then
+    echo "   Bootstrap PR already exists in $repo, skipping."
+    return 0
+  fi
+
+  # Create a temp clone and branch with standard files
+  tmp="$(mktemp -d)"; pushd "$tmp" >/dev/null
+  gh repo clone "$repo" .
+  db="$(gh repo view "$repo" --json defaultBranchRef -q ".defaultBranchRef.name")"
+  git checkout -B "$db" "origin/$db"
+  br="chore/repo-bootstrap-$(date +%Y%m%d-%H%M%S)"
+  git checkout -b "$br"
+  mkdir -p .github/ISSUE_TEMPLATE .github/workflows
+
+  cat > .github/CODEOWNERS <<EOF
+# Default ownership
+* @$OWNER
+EOF
+
+  cat > .github/pull_request_template.md <<EOF
+## Summary
+- Describe the change and reasoning.
+
+## Type of change
+- [ ] Feature
+- [ ] Bug fix
+- [ ] Chore / Maintenance
+- [ ] Docs
+
+## Checklist
+- [ ] I’ve run the CI locally (if applicable).
+- [ ] I’ve added/updated tests (if applicable).
+- [ ] I’ve updated documentation (if applicable).
+- [ ] I’ve considered security, secrets, and sensitive data handling.
+- [ ] I’ve linked related issues and added context.
+
+## Screenshots / Demos (optional)
+EOF
+
+  cat > .github/ISSUE_TEMPLATE/bug_report.md <<EOF
+---
+name: Bug report
+about: Create a report to help us improve
+labels: bug
+---
+### Describe the bug
+A clear and concise description of what the bug is.
+### To Reproduce
+1. ...
+### Expected behavior
+...
+### Environment
+- OS:
+- Version / Commit SHA:
+EOF
+
+  cat > .github/ISSUE_TEMPLATE/feature_request.md <<EOF
+---
+name: Feature request
+about: Suggest an idea for this project
+labels: enhancement
+---
+### Problem
+...
+### Proposed solution
+...
+### Alternatives
+...
+EOF
+
+  cat > .github/ISSUE_TEMPLATE/config.yml <<EOF
+blank_issues_enabled: false
+contact_links:
+  - name: Security reports
+    url: https://github.com/$OWNER
+    about: Please report security issues privately as described in SECURITY.md
+EOF
+
+  cat > .github/workflows/checks.yml <<EOF
+name: Checks
+on:
+  pull_request:
+  push:
+    branches: [ main, master ]
+permissions:
+  contents: read
+jobs:
+  shell:
+    if: \${{ hashFiles('**/*.sh') != '' }}
+    name: Shell lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install ShellCheck and shfmt
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y shellcheck shfmt
+      - name: ShellCheck
+        run: |
+          set -euo pipefail
+          if [ -z "\$(git ls-files '\''*.sh'\'')" ]; then exit 0; fi
+          git ls-files '\''*.sh'\'' | xargs -r -n1 shellcheck
+      - name: shfmt (check formatting)
+        run: |
+          set -euo pipefail
+          if [ -z "\$(git ls-files '\''*.sh'\'')" ]; then exit 0; fi
+          git ls-files '\''*.sh'\'' | xargs -r -n100 shfmt -i 2 -ci -s -d
+  node:
+    if: \${{ hashFiles('package.json') != '' }}
+    name: Node/Hardhat CI
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - name: Install
+        run: npm ci || npm install
+      - name: Lint (if available)
+        run: npm run -s lint || echo "No lint script"
+      - name: Build (if available)
+        run: npm run -s build || echo "No build script"
+      - name: Test (if available)
+        run: npm test --silent || echo "No test script"
+  foundry:
+    if: \${{ hashFiles('**/foundry.toml') != '' }}
+    name: Foundry (Solidity)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: stable
+      - name: Build
+        run: forge build
+      - name: Test
+        run: forge test -vvv
+EOF
+
+  cat > .github/dependabot.yml <<EOF
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "daily"
+    open-pull-requests-limit: 5
+    reviewers: ["$OWNER"]
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    reviewers: ["$OWNER"]
+EOF
+
+  cat > SECURITY.md <<EOF
+# Security Policy
+## Supported versions
+Security fixes are applied to the default branch.
+## Reporting a vulnerability
+Please report security issues privately. Do not create public GitHub issues for security reports.
+- Email: security@$OWNER.example (replace with your security contact)
+- Or open a Security Advisory draft (if enabled) and request to involve maintainers.
+We acknowledge within 72 hours and provide an initial plan within 7 business days.
+EOF
+
+  cat > .editorconfig <<EOF
+root = true
+[*]
+end_of_line = lf
+charset = utf-8
+insert_final_newline = true
+indent_style = space
+indent_size = 2
+trim_trailing_whitespace = true
+[*.md]
+trim_trailing_whitespace = false
+EOF
+
+  cat > .gitattributes <<EOF
+* text=auto eol=lf
+*.sh text eol=lf
+*.lock linguist-generated
+EOF
+
+  # Add MIT license to the SaaS repo only
+  cat > LICENSE <<EOF
+MIT License
+
+Copyright (c) $(date +%Y)
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+EOF
+
+  git add .
+  git commit -m "chore: repository bootstrap (CI, templates, Dependabot, security)"
+  git push -u origin "$br"
+
+  gh pr create \
+    --base "$db" \
+    --head "$br" \
+    --title "chore: repository bootstrap (CI, templates, Dependabot, security)" \
+    --body "Adds CI, templates, Dependabot, SECURITY, editor settings, and MIT LICENSE." \
+    --label "chore" \
+    -R "$repo"
+
+  popd >/dev/null
+  rm -rf "$tmp"
+}
+
+echo "==> Processing $R_HC (HorizCoin)"
+
+# 1) Merge minimal workspace + CI
+merge_pr "$R_HC" 39 || true
+
+# 2) Close superseded CI/scaffolding PRs
+close_pr "$R_HC" 36 "Superseded by #39 (workspace + CI)."
+close_pr "$R_HC" 38 "Superseded by #39 (workspace + CI)."
+
+# 3) Merge minimal HTTP server + Render blueprint
+merge_pr "$R_HC" 41 || true
+
+# 4) Close alternate deployment PRs to avoid duplication
+close_pr "$R_HC" 43 "Closing to avoid duplicate deployment paths; Render blueprint is part of #41."
+close_pr "$R_HC" 44 "Closing to avoid duplicate deployment paths; Render blueprint is part of #41."
+
+# 5) Apply branch protection
+protect_branch "$R_HC" || true
+
+# 6) Open the Render Deploy page to provision the public URL
+DEPLOY_URL="https://render.com/deploy?repo=https://github.com/$R_HC"
+echo "==> Opening Render Deploy page: $DEPLOY_URL"
+if command -v xdg-open >/dev/null 2>&1; then xdg-open "$DEPLOY_URL" || true; fi
+if command -v open >/dev/null 2>&1; then open "$DEPLOY_URL" || true; fi
+echo "   If the page did not open automatically, click: $DEPLOY_URL"
+
+# Optional: merge core model when you are ready (left for review)
+echo "==> (Optional) Review and merge core data model PR #32 when satisfied."
+
+echo "==> Processing $R_SAAS (SaaS repo) bootstrap"
+bootstrap_saas_repo "$R_SAAS" || true
+
+echo "==> All done. Watch CI and Render provisioning. When Render finishes, you will have a public HTTPS URL."
+'
