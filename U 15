@@ -1,0 +1,29 @@
+# Tech Stack Additions
+
+This project now includes:
+- DevContainer for consistent local dev and GitHub Codespaces.
+- Services CI matrix to build all independent services on Rust 1.70.
+- CodeQL scanning for Rust.
+- SBOM (CycloneDX) generation for supply-chain visibility.
+- Dependabot updates for Actions, Cargo, and Docker.
+- docker-compose to run all services together locally.
+- Makefile and Justfile for common tasks.
+- EditorConfig for consistent formatting.
+
+## Local orchestration
+
+```bash
+# Build everything (Rust 1.70)
+make toolchain build services-build
+
+# Run all services locally
+make compose-up
+
+# Tear down
+make compose-down
+```
+
+## Deployment notes
+- Each service has a Dockerfile; you can deploy to Render/Fly/Cloud Run/Lightsail.
+- For multi-arch images (arm64 + amd64), enable Docker Buildx and a registry (e.g., GHCR).
+- For stronger supply-chain assurances, consider SLSA provenance and signing (cosign).
