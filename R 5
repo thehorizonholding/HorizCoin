@@ -1,0 +1,2 @@
+git checkout -B main origin/main
+gh release create v0.1.0 -t "v0.1.0" -n "First integrated release: platform upgrade, pricing + coingecko APIs, payments + exchange scaffolding, bandwidth-to-value feature, CI/CD + GHCR publish."
