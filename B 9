@@ -1,0 +1,152 @@
+mod transform;
+mod types;
+
+use axum::{extract::Query, http::StatusCode, routing::get, routing::post, Json, Router};
+use parking_lot::RwLock;
+use std::{collections::HashMap, net::SocketAddr, sync::Arc};
+use time::OffsetDateTime;
+use tracing::{info, warn};
+use tracing_subscriber::{fmt, EnvFilter};
+use types::{IngestSample, Summary};
+
+#[derive(Default)]
+struct Store {
+    rows: Vec<IngestSample>,
+    last_ts: i64,
+}
+
+type Shared = Arc<RwLock<Store>>;
+
+fn now_ms() -> i64 {
+    (OffsetDateTime::now_utc().unix_timestamp_nanos() / 1_000_000) as i64
+}
+
+#[tokio::main]
+async fn main() {
+    let filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info"));
+    fmt().with_env_filter(filter).compact().init();
+
+    let state: Shared = Arc::new(RwLock::new(Store::default()));
+    let app = Router::new()
+        .route("/healthz", get(health))
+        .route("/v1/ingest", post(ingest))
+        .route("/v1/metrics/summary", get(summary))
+        .route("/v1/export.csv", get(export_csv))
+        .route("/v1/connectors/aws-data-exchange/publish", post(connector_aws_data_exchange))
+        .route("/v1/connectors/snowflake-marketplace/publish", post(connector_snowflake_marketplace))
+        .with_state(state);
+
+    let port = std::env::var("PORT").ok().and_then(|p| p.parse().ok()).unwrap_or(8610);
+    let addr = SocketAddr::from(([0, 0, 0, 0], port));
+    info!("data-monetizer-api listening on {}", addr);
+    axum::Server::bind(&addr).serve(app.into_make_service()).await.unwrap();
+}
+
+async fn health() -> (StatusCode, Json<serde_json::Value>) {
+    (StatusCode::OK, Json(serde_json::json!({"status":"ok"})))
+}
+
+async fn ingest(
+    axum::extract::State(state): axum::extract::State<Shared>,
+    Json(mut samples): Json<Vec<IngestSample>>,
+) -> (StatusCode, Json<serde_json::Value>) {
+    if samples.len() > 10_000 {
+        return (
+            StatusCode::BAD_REQUEST,
+            Json(serde_json::json!({"error":"too_many_samples"})),
+        );
+    }
+    for s in samples.iter_mut() {
+        let sanitized = transform::sanitize(s.clone());
+        *s = sanitized;
+    }
+
+    let mut s = state.write();
+    s.last_ts = now_ms();
+    s.rows.extend(samples.into_iter());
+    (StatusCode::OK, Json(serde_json::json!({"ok": true})))
+}
+
+async fn summary(axum::extract::State(state): axum::extract::State<Shared>) -> (StatusCode, Json<Summary>) {
+    let s = state.read();
+    let mut machines: HashMap<String, ()> = HashMap::new();
+    let mut in_sum: u128 = 0;
+    let mut out_sum: u128 = 0;
+
+    for r in s.rows.iter() {
+        machines.insert(r.machine_id_hashed.clone(), ());
+        in_sum += r.total_bytes_in as u128;
+        out_sum += r.total_bytes_out as u128;
+    }
+
+    let resp = Summary {
+        machines: machines.len(),
+        window_samples: s.rows.len(),
+        bytes_in: in_sum,
+        bytes_out: out_sum,
+        last_ts_unix_ms: s.last_ts,
+    };
+    (StatusCode::OK, Json(resp))
+}
+
+#[derive(serde::Deserialize)]
+struct ExportParams {
+    limit: Option<usize>,
+}
+
+async fn export_csv(
+    axum::extract::State(state): axum::extract::State<Shared>,
+    Query(p): Query<ExportParams>,
+) -> (StatusCode, (axum::http::HeaderMap, Vec<u8>)) {
+    let s = state.read();
+    let limit = p.limit.unwrap_or(100_000);
+    let rows = s.rows.iter().rev().take(limit).cloned().collect::<Vec<_>>();
+
+    let mut wtr = csv::Writer::from_writer(vec![]);
+    wtr.write_record([
+        "ts_unix_ms",
+        "machine_id_hashed",
+        "cloud_provider",
+        "region",
+        "total_bytes_in",
+        "total_bytes_out",
+    ]).ok();
+    for r in rows {
+        wtr.write_record(&[
+            r.ts_unix_ms.to_string(),
+            r.machine_id_hashed,
+            r.cloud_provider.unwrap_or_default(),
+            r.region.unwrap_or_default(),
+            r.total_bytes_in.to_string(),
+            r.total_bytes_out.to_string(),
+        ]).ok();
+    }
+    let data = wtr.into_inner().unwrap_or_default();
+
+    let mut headers = axum::http::HeaderMap::new();
+    headers.insert(axum::http::header::CONTENT_TYPE, "text/csv; charset=utf-8".parse().unwrap());
+    headers.insert(axum::http::header::CONTENT_DISPOSITION, "attachment; filename=net_usage_export.csv".parse().unwrap());
+    (StatusCode::OK, (headers, data))
+}
+
+async fn connector_aws_data_exchange() -> (StatusCode, Json<serde_json::Value>) {
+    warn!("AWS Data Exchange connector is a stub; see docs/monetization/ARCHITECTURE.md for steps.");
+    (
+        StatusCode::NOT_IMPLEMENTED,
+        Json(serde_json::json!({
+            "status": "not_implemented",
+            "hint": "Export CSV, stage to S3, and publish dataset via AWS Data Exchange product."
+        })),
+    )
+}
+
+async fn connector_snowflake_marketplace() -> (StatusCode, Json<serde_json::Value>) {
+    warn!("Snowflake Marketplace connector is a stub; see docs/monetization/ARCHITECTURE.md for steps.");
+    (
+        StatusCode::NOT_IMPLEMENTED,
+        Json(serde_json::json!({
+            "status": "not_implemented",
+            "hint": "Stage CSV to cloud storage and publish as a Snowflake share/listing."
+        })),
+    )
+}
