@@ -1,0 +1,166 @@
+use reqwest::Client;
+use serde::Serialize;
+use sha2::{Digest, Sha256};
+use std::time::Duration;
+use sysinfo::{Networks, RefreshKind, System, SystemExt};
+use tokio::time::sleep;
+use tracing::{error, info};
+use tracing_subscriber::{fmt, EnvFilter};
+
+#[derive(Debug, Serialize)]
+struct UsageSample {
+    ts_unix_ms: i64,
+    machine_id_hashed: String,
+    cloud_provider: Option<String>,
+    region: Option<String>,
+    total_bytes_in: u64,
+    total_bytes_out: u64,
+}
+
+fn now_ms() -> i64 {
+    (std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_millis()) as i64
+}
+
+async fn detect_cloud() -> (Option<String>, Option<String>, String) {
+    // Return (provider, region, raw_machine_id_candidate)
+    let client = Client::builder()
+        .timeout(Duration::from_millis(300))
+        .build()
+        .ok();
+
+    // AWS
+    if let Some(c) = &client {
+        if let Ok(id) = c
+            .get("http://169.254.169.254/latest/meta-data/instance-id")
+            .send()
+            .await
+            .and_then(|r| r.error_for_status())
+            .and_then(|r| r.text().await)
+        {
+            let region = c
+                .get("http://169.254.169.254/latest/meta-data/placement/region")
+                .send()
+                .await
+                .ok()
+                .and_then(|r| r.text().await.ok());
+            return (Some("aws".into()), region, id);
+        }
+    }
+
+    // GCP
+    if let Some(c) = &client {
+        if let Ok(id) = c
+            .get("http://169.254.169.254/computeMetadata/v1/instance/id")
+            .header("Metadata-Flavor", "Google")
+            .send()
+            .await
+            .and_then(|r| r.error_for_status())
+            .and_then(|r| r.text().await)
+        {
+            let region = c
+                .get("http://169.254.169.254/computeMetadata/v1/instance/zone")
+                .header("Metadata-Flavor", "Google")
+                .send()
+                .await
+                .ok()
+                .and_then(|r| r.text().await.ok())
+                .map(|z| z.split('/').last().unwrap_or(&z).to_string());
+            return (Some("gcp".into()), region, id);
+        }
+    }
+
+    // Azure
+    if let Some(c) = &client {
+        if let Ok(id) = c
+            .get("http://169.254.169.254/metadata/instance/compute/vmId?api-version=2021-02-01")
+            .header("Metadata", "true")
+            .send()
+            .await
+            .and_then(|r| r.error_for_status())
+            .and_then(|r| r.text().await)
+        {
+            let region = c
+                .get("http://169.254.169.254/metadata/instance/compute/location?api-version=2021-02-01")
+                .header("Metadata", "true")
+                .send()
+                .await
+                .ok()
+                .and_then(|r| r.text().await.ok());
+            return (Some("azure".into()), region, id);
+        }
+    }
+
+    (
+        None,
+        None,
+        hostname::get()
+            .ok()
+            .and_then(|s| s.into_string().ok())
+            .unwrap_or_else(|| "unknown-host".into()),
+    )
+}
+
+fn hash_id(id: &str, salt: &str) -> String {
+    let mut hasher = Sha256::new();
+    hasher.update(salt.as_bytes());
+    hasher.update(id.as_bytes());
+    hex::encode(hasher.finalize())
+}
+
+#[tokio::main]
+async fn main() {
+    let filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info"));
+    fmt().with_env_filter(filter).compact().init();
+
+    let monetizer_url = std::env::var("MONETIZER_URL").unwrap_or_else(|_| "http://localhost:8610/v1/ingest".into());
+    let interval_sec: u64 = std::env::var("INTERVAL_SEC").ok().and_then(|s| s.parse().ok()).unwrap_or(15);
+    let salt = std::env::var("MACHINE_SALT").unwrap_or_else(|_| "change-me-salt".into());
+
+    let client = Client::new();
+    let (provider, region, raw_id) = detect_cloud().await;
+    let machine_id_hashed = hash_id(&raw_id, &salt);
+    info!("net-observer starting; provider={:?} region={:?}", provider, region);
+
+    // Two-sample delta computation.
+    let mut sys = System::new_with_specifics(RefreshKind::new().with_networks());
+    sys.refresh_networks();
+    let mut last_in = 0u64;
+    let mut last_out = 0u64;
+    for (_, data) in sys.networks() {
+        last_in = last_in.saturating_add(data.total_received());
+        last_out = last_out.saturating_add(data.total_transmitted());
+    }
+
+    loop {
+        sleep(Duration::from_secs(interval_sec)).await;
+
+        sys.refresh_networks();
+        let mut cur_in = 0u64;
+        let mut cur_out = 0u64;
+        for (_, data) in sys.networks() {
+            cur_in = cur_in.saturating_add(data.total_received());
+            cur_out = cur_out.saturating_add(data.total_transmitted());
+        }
+
+        let delta_in = cur_in.saturating_sub(last_in);
+        let delta_out = cur_out.saturating_sub(last_out);
+        last_in = cur_in;
+        last_out = cur_out;
+
+        let sample = UsageSample {
+            ts_unix_ms: now_ms(),
+            machine_id_hashed: machine_id_hashed.clone(),
+            cloud_provider: provider.clone(),
+            region: region.clone(),
+            total_bytes_in: delta_in,
+            total_bytes_out: delta_out,
+        };
+
+        if let Err(e) = client.post(&monetizer_url).json(&vec![sample]).send().await {
+            error!("ingest failed: {}", e);
+        }
+    }
+}

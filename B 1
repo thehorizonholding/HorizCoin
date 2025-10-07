@@ -1,0 +1,22 @@
+# From a clean working tree on main
+git checkout -b feat/bandwidth-to-value
+
+# Add the files below into your repo at the exact paths shown, then:
+git add services/net-observer services/data-monetizer-api configs/monetizer docs/monetization .github/workflows/net-value-ci.yml .github/workflows/ghcr-publish-net-value.yml docker-compose.override.yml
+git commit -m "feat: bandwidth-to-value (net-observer + data-monetizer-api)"
+git push -u origin feat/bandwidth-to-value
+
+# Open PR (with GitHub CLI)
+gh pr create \
+  --title "feat: bandwidth-to-value (net-observer + data-monetizer-api)" \
+  --body "Adds a privacy-first Bandwidth-to-Value capability:
+- services/net-observer: per-machine network usage agent (hashed IDs, cloud detection, interval deltas)
+- services/data-monetizer-api: ingest, metrics summary, CSV export, marketplace connector stubs
+- Dockerfiles for both services
+- Example config under configs/monetizer
+- Architecture doc under docs/monetization
+- Local compose overlay for quick spin-up
+- CI workflow to build both services
+- Dedicated GHCR publish workflow for these images (multi-arch, provenance, SBOM, optional Cosign on tags)
+
+Notes: telemetry-only (no payloads), provider-compliant (no proxy/bandwidth resale), self-contained PR."

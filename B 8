@@ -1,0 +1,7 @@
+use crate::types::IngestSample;
+
+pub fn sanitize(sample: IngestSample) -> IngestSample {
+    let bucket_ms = 60_000; // 1-minute buckets
+    let ts = (sample.ts_unix_ms / bucket_ms) * bucket_ms;
+    IngestSample { ts_unix_ms: ts, ..sample }
+}

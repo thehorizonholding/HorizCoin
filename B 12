@@ -1,0 +1,51 @@
+# Bandwidth-to-Value Architecture
+
+This feature turns otherwise wasted, aggregate cloud network usage into compliant, anonymized datasets you can export or monetize via data marketplaces or your own paid APIs.
+
+## Design goals
+- Privacy-first: no packet payloads, only aggregate byte counters over time windows.
+- Provider-compliant: does not resell bandwidth or operate proxies/VPNs on cloud networks.
+- Portable: agent runs anywhere; aggregator exports CSV quickly.
+
+## Components
+- net-observer (agent)
+  - Periodically reads per-interface counters and sends deltas to the monetizer API.
+  - Hashes machine identifier with a salt; no raw instance IDs stored.
+  - Best-effort cloud provider/region detection for segmentation.
+
+- data-monetizer-api (aggregator)
+  - Accepts POSTed usage samples, sanitizes timestamps to reduce fingerprinting.
+  - Aggregates in-memory and exposes:
+    - `/v1/metrics/summary` — quick overview
+    - `/v1/export.csv` — dataset export for listing or internal analytics
+  - Connector stubs for:
+    - AWS Data Exchange
+    - Snowflake Marketplace
+    - (Add others: BigQuery Analytics Hub, Azure Data Share)
+
+## Compliance and ToS
+- Do NOT operate proxy/VPN, bandwidth resale, or traffic relaying on cloud networks unless explicitly allowed by provider ToS.
+- Only aggregate telemetry you are authorized to collect; no PII, secrets, or packet content.
+- Provide disclosures and opt-outs to users where applicable (privacy policy, DPA).
+
+## Monetization routes
+1) Data marketplaces
+   - AWS Data Exchange: upload CSV to S3, create a dataset/revision, publish a product (private offer or public listing).
+   - Snowflake Marketplace: stage data in a Snowflake database or external stage and publish a listing/share.
+
+2) Your paid API
+   - Rate-limit and monetize `/v1/metrics/*` and `/v1/export.*` via API keys and usage-based billing.
+
+3) Internal optimization
+   - Feed telemetry into a cost optimization pipeline (right-size instances, tune egress patterns) and realize direct savings.
+
+## Extending the feature
+- Persistence: store ingested samples in Postgres/ClickHouse for large-scale analytics.
+- Parquet exports: add Apache Parquet for columnar performance at scale.
+- Marketplace automation: implement APIs to create datasets/listings programmatically.
+- Anonymization: add k-anonymity thresholds, regional bucketing, noise injection (DP) where required.
+
+## Operations
+- Observability: add logs/metrics and SLIs for ingest success, export latency, and data freshness.
+- Security: protect the aggregator with mTLS or token auth; keep the MACHINE_SALT secret.
+- Retention: rotate raw samples and keep only aggregates as needed for your use case.

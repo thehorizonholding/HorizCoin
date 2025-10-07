@@ -1,0 +1,15 @@
+FROM rust:1.70-slim AS build
+WORKDIR /app
+RUN apt-get update && apt-get install -y pkg-config libssl-dev && rm -rf /var/lib/apt/lists/*
+COPY services/data-monetizer-api /app/services/data-monetizer-api
+WORKDIR /app/services/data-monetizer-api
+RUN cargo build --release
+
+FROM gcr.io/distroless/cc-debian12
+ENV RUST_BACKTRACE=1
+ENV PORT=8610
+WORKDIR /srv
+COPY --from=build /app/services/data-monetizer-api/target/release/data-monetizer-api /usr/local/bin/data-monetizer-api
+USER 65532:65532
+EXPOSE 8610
+ENTRYPOINT ["/usr/local/bin/data-monetizer-api"]
