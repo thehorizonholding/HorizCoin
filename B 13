@@ -1,0 +1,25 @@
+version: "3.9"
+services:
+  data-monetizer-api:
+    build:
+      context: .
+      dockerfile: services/data-monetizer-api/Dockerfile
+    image: horizcoin/data-monetizer-api:dev
+    environment:
+      - PORT=8610
+    ports:
+      - "8610:8610"
+    restart: unless-stopped
+
+  net-observer:
+    build:
+      context: .
+      dockerfile: services/net-observer/Dockerfile
+    image: horizcoin/net-observer:dev
+    environment:
+      - MONETIZER_URL=http://data-monetizer-api:8610/v1/ingest
+      - INTERVAL_SEC=15
+      - MACHINE_SALT=change-me-salt
+    depends_on:
+      - data-monetizer-api
+    restart: unless-stopped
