@@ -1,0 +1,21 @@
+# Example configuration (future use if you extend the API to read from object storage, etc.)
+redaction:
+  bucket_timestamps_ms: 60000
+  drop_interface_names: true
+
+export:
+  default_format: csv
+  s3_bucket: ""   # optional: s3://your-bucket/exports/
+  gcs_bucket: ""  # optional: gs://your-bucket/exports/
+
+ingestion:
+  accept_push: true
+  max_batch: 10000
+
+marketplaces:
+  aws_data_exchange:
+    enabled: false
+    product_id: ""
+  snowflake_marketplace:
+    enabled: false
+    share_name: ""
