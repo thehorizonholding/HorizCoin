@@ -1,0 +1,29 @@
+name: net-value suite CI
+
+on:
+  push:
+    paths:
+      - "services/net-observer/**"
+      - "services/data-monetizer-api/**"
+      - ".github/workflows/net-value-ci.yml"
+  pull_request:
+    paths:
+      - "services/net-observer/**"
+      - "services/data-monetizer-api/**"
+      - ".github/workflows/net-value-ci.yml"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        pkg: [ "services/net-observer", "services/data-monetizer-api" ]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.70.0
+      - name: Build ${{ matrix.pkg }}
+        run: |
+          cd ${{ matrix.pkg }}
+          cargo build --release
