@@ -1,0 +1,26 @@
+# If not already cloned
+gh repo clone thehorizonholding/HorizCoin
+cd HorizCoin
+git fetch origin --prune
+git checkout -B main origin/main
+
+# 1) Open PR: platform upgrade
+if git ls-remote --heads origin feat/platform-upgrade | grep -q feat/platform-upgrade; then
+  gh pr create --base main --head feat/platform-upgrade \
+    --title "chore: platform upgrade (devcontainer, compose, CI matrix, CodeQL, SBOM, Dependabot, tooling)" \
+    --body "Adds devcontainer, docker-compose, CI matrix, CodeQL, SBOM, Dependabot, Makefile/Justfile, EditorConfig, and Dockerfiles."
+fi
+
+# 2) Open PR: payments + exchange scaffolding
+if git ls-remote --heads origin feat/payments-exchange-scaffolding | grep -q feat/payments-exchange-scaffolding; then
+  gh pr create --base main --head feat/payments-exchange-scaffolding \
+    --title "feat(payments): ledger, payments-gateway, swift-adapter, exchange-engine scaffolding" \
+    --body "Adds scaffolding services, docs, and CI for payments + exchange."
+fi
+
+# 3) Open PR: coingecko-api (if branch exists)
+if git ls-remote --heads origin feat/coingecko-api | grep -q feat/coingecko-api; then
+  gh pr create --base main --head feat/coingecko-api \
+    --title "feat: add coingecko-api microservice (CoinGecko proxy with caching, health, Dockerfile)" \
+    --body "Adds services/coingecko-api and CI workflow."
+fi

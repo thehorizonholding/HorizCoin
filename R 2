@@ -1,0 +1,632 @@
+bash -lc '
+set -euo pipefail
+REPO="thehorizonholding/HorizCoin"
+if [ ! -d HorizCoin ]; then gh repo clone "$REPO"; fi
+cd HorizCoin
+git fetch origin --prune
+git checkout -B main origin/main
+BR="feat/bandwidth-to-value"
+git checkout -b "$BR"
+
+mkdir -p services/net-observer/src services/data-monetizer-api/src configs/monetizer docs/monetization .github/workflows
+
+# Write files
+cat > services/net-observer/Cargo.toml <<EOF
+[package]
+name = "net-observer"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+description = "Lightweight agent to summarize network usage and send anonymized telemetry to the monetizer API"
+
+[dependencies]
+tokio = { version = "1.39", features = ["rt-multi-thread", "macros", "time"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+reqwest = { version = "0.12", features = ["json", "rustls-tls"] }
+sysinfo = "0.30"
+sha2 = "0.10"
+hex = "0.4"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
+thiserror = "1.0"
+hostname = "0.4"
+EOF
+
+cat > services/net-observer/src/main.rs <<'EOF'
+use reqwest::Client;
+use serde::Serialize;
+use sha2::{Digest, Sha256};
+use std::time::Duration;
+use sysinfo::{Networks, RefreshKind, System, SystemExt};
+use tokio::time::sleep;
+use tracing::{error, info};
+use tracing_subscriber::{fmt, EnvFilter};
+
+#[derive(Debug, Serialize)]
+struct UsageSample {
+    ts_unix_ms: i64,
+    machine_id_hashed: String,
+    cloud_provider: Option<String>,
+    region: Option<String>,
+    total_bytes_in: u64,
+    total_bytes_out: u64,
+}
+
+fn now_ms() -> i64 {
+    (std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_millis()) as i64
+}
+
+async fn detect_cloud() -> (Option<String>, Option<String>, String) {
+    let client = Client::builder()
+        .timeout(Duration::from_millis(300))
+        .build()
+        .ok();
+
+    // AWS
+    if let Some(c) = &client {
+        if let Ok(id) = c
+            .get("http://169.254.169.254/latest/meta-data/instance-id")
+            .send()
+            .await
+            .and_then(|r| r.error_for_status())
+            .and_then(|r| r.text().await)
+        {
+            let region = c
+                .get("http://169.254.169.254/latest/meta-data/placement/region")
+                .send()
+                .await
+                .ok()
+                .and_then(|r| r.text().await.ok());
+            return (Some("aws".into()), region, id);
+        }
+    }
+
+    // GCP
+    if let Some(c) = &client {
+        if let Ok(id) = c
+            .get("http://169.254.169.254/computeMetadata/v1/instance/id")
+            .header("Metadata-Flavor", "Google")
+            .send()
+            .await
+            .and_then(|r| r.error_for_status())
+            .and_then(|r| r.text().await)
+        {
+            let region = c
+                .get("http://169.254.169.254/computeMetadata/v1/instance/zone")
+                .header("Metadata-Flavor", "Google")
+                .send()
+                .await
+                .ok()
+                .and_then(|r| r.text().await.ok())
+                .map(|z| z.split('/').last().unwrap_or(&z).to_string());
+            return (Some("gcp".into()), region, id);
+        }
+    }
+
+    // Azure
+    if let Some(c) = &client {
+        if let Ok(id) = c
+            .get("http://169.254.169.254/metadata/instance/compute/vmId?api-version=2021-02-01")
+            .header("Metadata", "true")
+            .send()
+            .await
+            .and_then(|r| r.error_for_status())
+            .and_then(|r| r.text().await)
+        {
+            let region = c
+                .get("http://169.254.169.254/metadata/instance/compute/location?api-version=2021-02-01")
+                .header("Metadata", "true")
+                .send()
+                .await
+                .ok()
+                .and_then(|r| r.text().await.ok());
+            return (Some("azure".into()), region, id);
+        }
+    }
+
+    (
+        None,
+        None,
+        hostname::get()
+            .ok()
+            .and_then(|s| s.into_string().ok())
+            .unwrap_or_else(|| "unknown-host".into()),
+    )
+}
+
+fn hash_id(id: &str, salt: &str) -> String {
+    let mut hasher = Sha256::new();
+    hasher.update(salt.as_bytes());
+    hasher.update(id.as_bytes());
+    hex::encode(hasher.finalize())
+}
+
+#[tokio::main]
+async fn main() {
+    let filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info"));
+    fmt().with_env_filter(filter).compact().init();
+
+    let monetizer_url = std::env::var("MONETIZER_URL").unwrap_or_else(|_| "http://localhost:8610/v1/ingest".into());
+    let interval_sec: u64 = std::env::var("INTERVAL_SEC").ok().and_then(|s| s.parse().ok()).unwrap_or(15);
+    let salt = std::env::var("MACHINE_SALT").unwrap_or_else(|_| "change-me-salt".into());
+
+    let client = Client::new();
+    let (provider, region, raw_id) = detect_cloud().await;
+    let machine_id_hashed = hash_id(&raw_id, &salt);
+    info!("net-observer starting; provider={:?} region={:?}", provider, region);
+
+    // Two-sample delta computation.
+    let mut sys = System::new_with_specifics(RefreshKind::new().with_networks());
+    sys.refresh_networks();
+    let mut last_in = 0u64;
+    let mut last_out = 0u64;
+    for (_, data) in sys.networks() {
+        last_in = last_in.saturating_add(data.total_received());
+        last_out = last_out.saturating_add(data.total_transmitted());
+    }
+
+    loop {
+        sleep(Duration::from_secs(interval_sec)).await;
+
+        sys.refresh_networks();
+        let mut cur_in = 0u64;
+        let mut cur_out = 0u64;
+        for (_, data) in sys.networks() {
+            cur_in = cur_in.saturating_add(data.total_received());
+            cur_out = cur_out.saturating_add(data.total_transmitted());
+        }
+
+        let delta_in = cur_in.saturating_sub(last_in);
+        let delta_out = cur_out.saturating_sub(last_out);
+        last_in = cur_in;
+        last_out = cur_out;
+
+        let sample = UsageSample {
+            ts_unix_ms: now_ms(),
+            machine_id_hashed: machine_id_hashed.clone(),
+            cloud_provider: provider.clone(),
+            region: region.clone(),
+            total_bytes_in: delta_in,
+            total_bytes_out: delta_out,
+        };
+
+        if let Err(e) = client.post(&monetizer_url).json(&vec![sample]).send().await {
+            error!("ingest failed: {}", e);
+        }
+    }
+}
+EOF
+
+cat > services/net-observer/Dockerfile <<EOF
+FROM rust:1.70-slim AS build
+WORKDIR /app
+RUN apt-get update && apt-get install -y pkg-config libssl-dev && rm -rf /var/lib/apt/lists/*
+COPY services/net-observer /app/services/net-observer
+WORKDIR /app/services/net-observer
+RUN cargo build --release
+
+FROM gcr.io/distroless/cc-debian12
+ENV RUST_BACKTRACE=1
+ENV MONETIZER_URL=http://data-monetizer-api:8610/v1/ingest
+ENV INTERVAL_SEC=15
+ENV MACHINE_SALT=change-me-salt
+WORKDIR /srv
+COPY --from=build /app/services/net-observer/target/release/net-observer /usr/local/bin/net-observer
+USER 65532:65532
+ENTRYPOINT ["/usr/local/bin/net-observer"]
+EOF
+
+cat > services/data-monetizer-api/Cargo.toml <<EOF
+[package]
+name = "data-monetizer-api"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+description = "Aggregates anonymized network usage, exports datasets, and provides marketplace connector stubs"
+
+[dependencies]
+axum = { version = "0.7", features = ["json"] }
+tokio = { version = "1.39", features = ["rt-multi-thread", "macros"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
+thiserror = "1.0"
+csv = "1.3"
+parking_lot = "0.12"
+time = "0.3"
+EOF
+
+cat > services/data-monetizer-api/src/types.rs <<'EOF'
+use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct IngestSample {
+    pub ts_unix_ms: i64,
+    pub machine_id_hashed: String,
+    pub cloud_provider: Option<String>,
+    pub region: Option<String>,
+    pub total_bytes_in: u64,
+    pub total_bytes_out: u64,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct Summary {
+    pub machines: usize,
+    pub window_samples: usize,
+    pub bytes_in: u128,
+    pub bytes_out: u128,
+    pub last_ts_unix_ms: i64,
+}
+EOF
+
+cat > services/data-monetizer-api/src/transform.rs <<'EOF'
+use crate::types::IngestSample;
+
+pub fn sanitize(sample: IngestSample) -> IngestSample {
+    let bucket_ms = 60_000; // 1-minute buckets
+    let ts = (sample.ts_unix_ms / bucket_ms) * bucket_ms;
+    IngestSample { ts_unix_ms: ts, ..sample }
+}
+EOF
+
+cat > services/data-monetizer-api/src/main.rs <<'EOF'
+mod transform;
+mod types;
+
+use axum::{extract::Query, http::StatusCode, routing::get, routing::post, Json, Router};
+use parking_lot::RwLock;
+use std::{collections::HashMap, net::SocketAddr, sync::Arc};
+use time::OffsetDateTime;
+use tracing::{info, warn};
+use tracing_subscriber::{fmt, EnvFilter};
+use types::{IngestSample, Summary};
+
+#[derive(Default)]
+struct Store {
+    rows: Vec<IngestSample>,
+    last_ts: i64,
+}
+
+type Shared = Arc<RwLock<Store>>;
+
+fn now_ms() -> i64 {
+    (OffsetDateTime::now_utc().unix_timestamp_nanos() / 1_000_000) as i64
+}
+
+#[tokio::main]
+async fn main() {
+    let filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info"));
+    fmt().with_env_filter(filter).compact().init();
+
+    let state: Shared = Arc::new(RwLock::new(Store::default()));
+    let app = Router::new()
+        .route("/healthz", get(health))
+        .route("/v1/ingest", post(ingest))
+        .route("/v1/metrics/summary", get(summary))
+        .route("/v1/export.csv", get(export_csv))
+        .route("/v1/connectors/aws-data-exchange/publish", post(connector_aws_data_exchange))
+        .route("/v1/connectors/snowflake-marketplace/publish", post(connector_snowflake_marketplace))
+        .with_state(state);
+
+    let port = std::env::var("PORT").ok().and_then(|p| p.parse().ok()).unwrap_or(8610);
+    let addr = SocketAddr::from(([0, 0, 0, 0], port));
+    info!("data-monetizer-api listening on {}", addr);
+    axum::Server::bind(&addr).serve(app.into_make_service()).await.unwrap();
+}
+
+async fn health() -> (StatusCode, Json<serde_json::Value>) {
+    (StatusCode::OK, Json(serde_json::json!({"status":"ok"})))
+}
+
+async fn ingest(
+    axum::extract::State(state): axum::extract::State<Shared>,
+    Json(mut samples): Json<Vec<IngestSample>>,
+) -> (StatusCode, Json<serde_json::Value>) {
+    if samples.len() > 10_000 {
+        return (
+            StatusCode::BAD_REQUEST,
+            Json(serde_json::json!({"error":"too_many_samples"})),
+        );
+    }
+    for s in samples.iter_mut() {
+        let sanitized = transform::sanitize(s.clone());
+        *s = sanitized;
+    }
+
+    let mut s = state.write();
+    s.last_ts = now_ms();
+    s.rows.extend(samples.into_iter());
+    (StatusCode::OK, Json(serde_json::json!({"ok": true})))
+}
+
+async fn summary(axum::extract::State(state): axum::extract::State<Shared>) -> (StatusCode, Json<Summary>) {
+    let s = state.read();
+    let mut machines: HashMap<String, ()> = HashMap::new();
+    let mut in_sum: u128 = 0;
+    let mut out_sum: u128 = 0;
+
+    for r in s.rows.iter() {
+        machines.insert(r.machine_id_hashed.clone(), ());
+        in_sum += r.total_bytes_in as u128;
+        out_sum += r.total_bytes_out as u128;
+    }
+
+    let resp = Summary {
+        machines: machines.len(),
+        window_samples: s.rows.len(),
+        bytes_in: in_sum,
+        bytes_out: out_sum,
+        last_ts_unix_ms: s.last_ts,
+    };
+    (StatusCode::OK, Json(resp))
+}
+
+#[derive(serde::Deserialize)]
+struct ExportParams {
+    limit: Option<usize>,
+}
+
+async fn export_csv(
+    axum::extract::State(state): axum::extract::State<Shared>,
+    Query(p): Query<ExportParams>,
+) -> (StatusCode, (axum::http::HeaderMap, Vec<u8>)) {
+    let s = state.read();
+    let limit = p.limit.unwrap_or(100_000);
+    let rows = s.rows.iter().rev().take(limit).cloned().collect::<Vec<_>>();
+
+    let mut wtr = csv::Writer::from_writer(vec![]);
+    wtr.write_record([
+        "ts_unix_ms",
+        "machine_id_hashed",
+        "cloud_provider",
+        "region",
+        "total_bytes_in",
+        "total_bytes_out",
+    ]).ok();
+    for r in rows {
+        wtr.write_record(&[
+            r.ts_unix_ms.to_string(),
+            r.machine_id_hashed,
+            r.cloud_provider.unwrap_or_default(),
+            r.region.unwrap_or_default(),
+            r.total_bytes_in.to_string(),
+            r.total_bytes_out.to_string(),
+        ]).ok();
+    }
+    let data = wtr.into_inner().unwrap_or_default();
+
+    let mut headers = axum::http::HeaderMap::new();
+    headers.insert(axum::http::header::CONTENT_TYPE, "text/csv; charset=utf-8".parse().unwrap());
+    headers.insert(axum::http::header::CONTENT_DISPOSITION, "attachment; filename=net_usage_export.csv".parse().unwrap());
+    (StatusCode::OK, (headers, data))
+}
+
+async fn connector_aws_data_exchange() -> (StatusCode, Json<serde_json::Value>) {
+    warn!("AWS Data Exchange connector is a stub; see docs/monetization/ARCHITECTURE.md for steps.");
+    (
+        StatusCode::NOT_IMPLEMENTED,
+        Json(serde_json::json!({
+            "status": "not_implemented",
+            "hint": "Export CSV, stage to S3, and publish dataset via AWS Data Exchange product."
+        })),
+    )
+}
+
+async fn connector_snowflake_marketplace() -> (StatusCode, Json<serde_json::Value>) {
+    warn!("Snowflake Marketplace connector is a stub; see docs/monetization/ARCHITECTURE.md for steps.");
+    (
+        StatusCode::NOT_IMPLEMENTED,
+        Json(serde_json::json!({
+            "status": "not_implemented",
+            "hint": "Stage CSV to cloud storage and publish as a Snowflake share/listing."
+        })),
+    )
+}
+EOF
+
+cat > services/data-monetizer-api/Dockerfile <<EOF
+FROM rust:1.70-slim AS build
+WORKDIR /app
+RUN apt-get update && apt-get install -y pkg-config libssl-dev && rm -rf /var/lib/apt/lists/*
+COPY services/data-monetizer-api /app/services/data-monetizer-api
+WORKDIR /app/services/data-monetizer-api
+RUN cargo build --release
+
+FROM gcr.io/distroless/cc-debian12
+ENV RUST_BACKTRACE=1
+ENV PORT=8610
+WORKDIR /srv
+COPY --from=build /app/services/data-monetizer-api/target/release/data-monetizer-api /usr/local/bin/data-monetizer-api
+USER 65532:65532
+EXPOSE 8610
+ENTRYPOINT ["/usr/local/bin/data-monetizer-api"]
+EOF
+
+cat > configs/monetizer/config.example.yaml <<EOF
+# Example configuration (future use if you extend the API to read from object storage, etc.)
+redaction:
+  bucket_timestamps_ms: 60000
+  drop_interface_names: true
+
+export:
+  default_format: csv
+  s3_bucket: ""   # optional: s3://your-bucket/exports/
+  gcs_bucket: ""  # optional: gs://your-bucket/exports/
+
+ingestion:
+  accept_push: true
+  max_batch: 10000
+
+marketplaces:
+  aws_data_exchange:
+    enabled: false
+    product_id: ""
+  snowflake_marketplace:
+    enabled: false
+    share_name: ""
+EOF
+
+mkdir -p docs/monetization
+cat > docs/monetization/ARCHITECTURE.md <<'EOF'
+# Bandwidth-to-Value Architecture
+
+This feature turns otherwise wasted, aggregate cloud network usage into compliant, anonymized datasets you can export or monetize via data marketplaces or your own paid APIs.
+
+## Design goals
+- Privacy-first: no packet payloads, only aggregate byte counters over time windows.
+- Provider-compliant: does not resell bandwidth or operate proxies/VPNs on cloud networks.
+- Portable: agent runs anywhere; aggregator exports CSV quickly.
+
+## Components
+- net-observer (agent)
+  - Periodically reads per-interface counters and sends deltas to the monetizer API.
+  - Hashes machine identifier with a salt; no raw instance IDs stored.
+  - Best-effort cloud provider/region detection for segmentation.
+
+- data-monetizer-api (aggregator)
+  - Accepts POSTed usage samples, sanitizes timestamps to reduce fingerprinting.
+  - Aggregates in-memory and exposes:
+    - `/v1/metrics/summary` — quick overview
+    - `/v1/export.csv` — dataset export for listing or internal analytics
+  - Connector stubs for:
+    - AWS Data Exchange
+    - Snowflake Marketplace
+    - (Add others: BigQuery Analytics Hub, Azure Data Share)
+
+## Compliance and ToS
+- Do NOT operate proxy/VPN, bandwidth resale, or traffic relaying on cloud networks unless explicitly allowed by provider ToS.
+- Only aggregate telemetry you are authorized to collect; no PII, secrets, or packet content.
+- Provide disclosures and opt-outs to users where applicable (privacy policy, DPA).
+
+## Monetization routes
+1) Data marketplaces
+   - AWS Data Exchange: upload CSV to S3, create a dataset/revision, publish a product (private offer or public listing).
+   - Snowflake Marketplace: stage data in a Snowflake database or external stage and publish a listing/share.
+
+2) Your paid API
+   - Rate-limit and monetize `/v1/metrics/*` and `/v1/export.*` via API keys and usage-based billing.
+
+3) Internal optimization
+   - Feed telemetry into a cost optimization pipeline (right-size instances, tune egress patterns) and realize direct savings.
+
+## Extending the feature
+- Persistence: store ingested samples in Postgres/ClickHouse for large-scale analytics.
+- Parquet exports: add Apache Parquet for columnar performance at scale.
+- Marketplace automation: implement APIs to create datasets/listings programmatically.
+- Anonymization: add k-anonymity thresholds, regional bucketing, noise injection (DP) where required.
+
+## Operations
+- Observability: add logs/metrics and SLIs for ingest success, export latency, and data freshness.
+- Security: protect the aggregator with mTLS or token auth; keep the MACHINE_SALT secret.
+- Retention: rotate raw samples and keep only aggregates as needed for your use case.
+EOF
+
+cat > docker-compose.override.yml <<EOF
+version: "3.9"
+services:
+  data-monetizer-api:
+    build:
+      context: .
+      dockerfile: services/data-monetizer-api/Dockerfile
+    image: horizcoin/data-monetizer-api:dev
+    environment:
+      - PORT=8610
+    ports:
+      - "8610:8610"
+    restart: unless-stopped
+
+  net-observer:
+    build:
+      context: .
+      dockerfile: services/net-observer/Dockerfile
+    image: horizcoin/net-observer:dev
+    environment:
+      - MONETIZER_URL=http://data-monetizer-api:8610/v1/ingest
+      - INTERVAL_SEC=15
+      - MACHINE_SALT=change-me-salt
+    depends_on:
+      - data-monetizer-api
+    restart: unless-stopped
+EOF
+
+cat > .github/workflows/net-value-ci.yml <<EOF
+name: net-value suite CI
+
+on:
+  push:
+    paths:
+      - "services/net-observer/**"
+      - "services/data-monetizer-api/**"
+      - ".github/workflows/net-value-ci.yml"
+  pull_request:
+    paths:
+      - "services/net-observer/**"
+      - "services/data-monetizer-api/**"
+      - ".github/workflows/net-value-ci.yml"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        pkg: [ "services/net-observer", "services/data-monetizer-api" ]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.70.0
+      - name: Build \${{ matrix.pkg }}
+        run: |
+          cd \${{ matrix.pkg }}
+          cargo build --release
+EOF
+
+cat > .github/workflows/ghcr-publish-net-value.yml <<EOF
+name: Publish net-value images to GHCR
+
+on:
+  push:
+    branches: [ main ]
+    tags: [ 'v*', 'v*.*', 'v*.*.*' ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+  id-token: write
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_PREFIX: \${{ github.repository_owner }}/horizcoin
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: net-observer
+            context: .
+            dockerfile: services/net-observer/Dockerfile
+            image: net-observer
+          - name: data-monetizer-api
+            context: .
+            dockerfile: services/data-monetizer-api/Dockerfile
+            image: data-monetizer-api
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check Dockerfile exists
+        id: check
+        shell: bash
+        run: |
+          if [ ! -f "\${{ matrix.dockerfile }}" ]; the

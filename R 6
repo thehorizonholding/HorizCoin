@@ -1,0 +1,4 @@
+docker compose -f docker-compose.yml -f docker-compose.override.yml up -d --build
+curl -s http://localhost:8610/healthz
+curl -s http://localhost:8610/v1/metrics/summary | jq
+curl -s "http://localhost:8610/v1/export.csv?limit=1000" -o export.csv
