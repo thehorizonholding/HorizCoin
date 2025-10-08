@@ -185,3 +185,230 @@ Contributions welcome. Please open issues/PRs with clear descriptions. For secur
 ## License
 
 MIT
+
+# HorizCoin Monorepo — HorizWallet Ecosystem
+
+A modern, non‑custodial wallet suite for HorizCoin and EVM chains. This monorepo contains:
+- Browser Extension (MV3) — onboarding, approvals, portfolio
+- Mobile App (React Native, Expo) — onboarding and account view
+- Dapp SDK — injected EIP‑1193 provider and helpers
+- Core cryptography/signing — BIP‑39/32/44, EIP‑1559, EIP‑712
+- Assets module — ERC‑20 discovery, balances, watchlist
+- WalletConnect v2 scaffolding — QR pairing and deep links
+- Docs, demo dapp, CI, and shared tooling
+
+Track progress under the epic: [#120](https://github.com/thehorizonholding/HorizCoin/issues/120)
+
+---
+
+## Status
+
+Merged
+- Monorepo scaffolding with pnpm workspaces and CI
+- Core + SDK + Extension vertical slice: PR [#132](https://github.com/thehorizonholding/HorizCoin/pull/132)
+  - wallet-core: BIP‑39/32/44, EIP‑1559 signing, EIP‑712 typed‑data signing, in‑memory vault with auto‑lock
+  - wallet-sdk: EIP‑1193 provider injection (connect/accounts/chain switch, sendTransaction, signTypedData), demo dapp integration
+  - Extension (MV3): onboarding (create/import), first account address + Sepolia balance, approvals for connect/sign
+- Mobile MVP (React Native, Expo): PR [#133](https://github.com/thehorizonholding/HorizCoin/pull/133)
+  - Onboarding/import, account view with Sepolia balance, basic settings (auto‑lock)
+
+In progress (open PRs)
+- Assets: ERC‑20 portfolio basics (watchlist, balances, portfolio UI): PR [#134](https://github.com/thehorizonholding/HorizCoin/pull/134), progresses [#125](https://github.com/thehorizonholding/HorizCoin/issues/125)
+- WalletConnect v2 scaffolding (QR + deep links, sessions): PR [#135](https://github.com/thehorizonholding/HorizCoin/pull/135), progresses [#129](https://github.com/thehorizonholding/HorizCoin/issues/129)
+
+Planned
+- Transaction simulation and risk flags: [#128](https://github.com/thehorizonholding/HorizCoin/issues/128)
+- Swaps/bridges adapters and flows: [#126](https://github.com/thehorizonholding/HorizCoin/issues/126)
+- Hardware wallets (Ledger/Trezor): [#127](https://github.com/thehorizonholding/HorizCoin/issues/127)
+- Account abstraction (ERC‑4337): [#130](https://github.com/thehorizonholding/HorizCoin/issues/130)
+- Extension polish to close out: [#122](https://github.com/thehorizonholding/HorizCoin/issues/122)
+
+---
+
+## Monorepo layout
+
+- packages/
+  - wallet-core — cryptography, HD derivation, signing, vault abstraction
+  - wallet-sdk — injected EIP‑1193 provider + dapp helpers
+  - wallet-assets — token list parsing, ERC‑20 metadata validation, balances, watchlist persistence, spam heuristics
+- apps/
+  - extension — MV3 extension (service worker, UI, content script), onboarding, account, approvals, portfolio
+  - mobile — React Native (Expo) app, onboarding and account view
+- examples/
+  - demo-dapp — sample dapp using injected EIP‑1193 provider for connect, accounts, signTypedData, sendTransaction
+- docs/wallet/
+  - DEVELOPMENT.md, SECURITY.md, OVERVIEW.md, ARCHITECTURE.md, ASSETS.md, WALLETCONNECT.md
+
+---
+
+## Quick start
+
+Prerequisites
+- Node 18+, pnpm, Git, Chrome (for extension), iOS/Android simulators or devices (for mobile, via Expo)
+
+Install and build
+```bash
+pnpm i
+pnpm -w build
+```
+
+Run the browser extension (dev)
+```bash
+pnpm --filter @horiz/extension dev
+```
+- In Chrome: open chrome://extensions → Enable Developer mode → Load unpacked → select apps/extension/dist
+- The extension is named “HorizWallet (Dev)”
+
+Run the demo dapp
+```bash
+pnpm --filter demo-dapp dev
+```
+- Open in browser and connect to “HorizWallet (Dev)”
+
+Run the mobile app (Expo)
+```bash
+pnpm --filter @horiz/wallet-mobile start
+```
+- Follow Expo prompts to launch on iOS/Android simulator or device
+
+Run tests and lint
+```bash
+pnpm -w test
+pnpm -w lint
+```
+
+---
+
+## Configuration
+
+Default network
+- Ethereum Sepolia via public RPC (no keys required)
+- Override via environment variables; see docs/wallet/DEVELOPMENT.md
+
+Environment variables (examples)
+- RPC and chain
+  - WALLET_RPC_SEPOLIA_URL=https://ethereum-sepolia.publicnode.com
+- WalletConnect v2 (feature‑gated)
+  - HORIZWALLET_FEATURE_WC=true
+  - WALLETCONNECT_PROJECT_ID=<your_project_id>
+  - WALLETCONNECT_RELAY_URL=wss://relay.walletconnect.com
+
+Create a .env or use your shell environment to provide these values. No production secrets should be committed.
+
+---
+
+## Features
+
+Implemented
+- Non‑custodial seed management (BIP‑39/32/44 derivation)
+- Signing: EIP‑1559 transactions and EIP‑712 typed data
+- EIP‑1193 provider SDK and injected provider for dapps
+- Extension onboarding and approvals for connect/sign
+- Mobile onboarding and account view with live Sepolia balance
+
+In progress
+- ERC‑20 assets: discovery, watchlist, balances, portfolio UI (extension)
+- WalletConnect v2 scaffolding: QR code pairing (desktop), deep links (mobile), session lifecycle
+
+Planned
+- Transaction simulation and risk flags prior to approval
+- Swaps and bridges integrations with modular adapters
+- Hardware wallet support (WebHID/WebUSB, native bridges)
+- Account abstraction (ERC‑4337) with bundler/paymaster UX
+
+---
+
+## Architecture
+
+Components and responsibilities
+- wallet-core
+  - BIP‑39/32/44 mnemonic and HD derivation
+  - Signing: EIP‑1559 transactions, EIP‑712 typed data
+  - In‑memory vault with auto‑lock timer; keystore/hardware TODO hooks
+- wallet-sdk
+  - Injected EIP‑1193 provider with permissions
+  - Request routing to approvals UI (connect/sign/send)
+  - Dapp helpers and types
+- wallet-assets
+  - Token list parsing and contract validation (decimals/symbol)
+  - ERC‑20 balance fetching with caching and rate limiting
+  - Watchlist persistence, spam heuristics and denylist stubs
+- apps/extension (MV3)
+  - Service worker background, React UI, content script for injection
+  - Onboarding, account, approvals drawer, portfolio screen
+- apps/mobile (Expo)
+  - Navigation, onboarding/import, account view, settings
+  - Deep link handler for WalletConnect
+
+High‑level flow
+1) Dapp → Injected Provider (EIP‑1193)
+2) Provider → Extension approval UI (connect/sign/send)
+3) Approved request → wallet-core signing → RPC submission
+4) Assets module refreshes balances/metadata for portfolio
+5) WalletConnect path: dapp QR/deep link → session → approvals → request handling via wallet-sdk → signing/RPC
+
+Build tooling and CI
+- pnpm workspaces, shared tsconfig/eslint/jest setup
+- GitHub Actions workflow builds, lints, and tests packages and extension on PRs
+- Mobile CI runs lint/build steps (no store publishing)
+
+---
+
+## Security model
+
+- In‑memory secrets: no persistent storage by default; auto‑lock clears vault
+- Strict origin checks and explicit user approvals for connect/sign
+- Redacted logs; minimal telemetry
+- No production keys committed; env‑based configuration only
+- Future work: OS keystore integration, hardware wallets, transaction simulation and risk analysis
+- See docs/wallet/SECURITY.md for details
+
+---
+
+## Roadmap & tracking
+
+- Epic: [#120](https://github.com/thehorizonholding/HorizCoin/issues/120)
+- Sub‑issues:
+  - Core: [#121](https://github.com/thehorizonholding/HorizCoin/issues/121) — delivered
+  - Extension: [#122](https://github.com/thehorizonholding/HorizCoin/issues/122)
+  - Mobile: [#123](https://github.com/thehorizonholding/HorizCoin/issues/123) — MVP delivered
+  - Provider/SDK: [#124](https://github.com/thehorizonholding/HorizCoin/issues/124) — delivered
+  - Tokens/NFTs: [#125](https://github.com/thehorizonholding/HorizCoin/issues/125) — in progress
+  - Swaps/Bridges: [#126](https://github.com/thehorizonholding/HorizCoin/issues/126)
+  - Hardware wallets: [#127](https://github.com/thehorizonholding/HorizCoin/issues/127)
+  - Simulation/Risk: [#128](https://github.com/thehorizonholding/HorizCoin/issues/128)
+  - WalletConnect v2: [#129](https://github.com/thehorizonholding/HorizCoin/issues/129) — in progress
+  - Account Abstraction (ERC‑4337): [#130](https://github.com/thehorizonholding/HorizCoin/issues/130)
+
+Recent PRs
+- Core + SDK + Extension vertical slice: [#132](https://github.com/thehorizonholding/HorizCoin/pull/132) (merged)
+- Mobile MVP: [#133](https://github.com/thehorizonholding/HorizCoin/pull/133) (merged)
+- Assets: [#134](https://github.com/thehorizonholding/HorizCoin/pull/134) (open)
+- WalletConnect v2: [#135](https://github.com/thehorizonholding/HorizCoin/pull/135) (open)
+- README overhaul: [#136](https://github.com/thehorizonholding/HorizCoin/pull/136) (open)
+
+---
+
+## Contributing
+
+- Read docs/wallet/DEVELOPMENT.md for environment and commands
+- Use conventional commits if possible (feat:, fix:, docs:, chore:, etc.)
+- Open an issue or PR; CI will run lint/build/tests
+- Please avoid committing secrets or production credentials
+
+---
+
+## License
+
+- Individual packages are MIT‑licensed (see each package.json "license")
+- Repository‑level licensing TBD
+
+---
+
+## Acknowledgements
+
+Built on the EVM ecosystem and standards including EIP‑1193 (Provider), EIP‑1559 (Transactions), EIP‑712 (Typed Data), and ERC‑4337 (Account Abstraction). Thanks to open‑source tooling in the Ethereum and React Native communities.
+
+---
+
+For development use only. Do not store or commit production secrets.
