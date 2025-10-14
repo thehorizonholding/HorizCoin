@@ -1,0 +1,27 @@
+# Positive Practices for Private-Access Economy
+
+## Efficiency and Automation
+- Automate credits management and billing workflows.
+- Provide concise API and dashboard summaries for balances, history, and usage.
+
+## Usability
+- Present balances and events in clear, scannable UI components.
+- Provide quick summaries and exportable reports.
+
+## Business Model Flexibility
+- Support pay-as-you-go and subscription models.
+- Allow enterprise invoicing and adjustable pricing per customer.
+
+## Security and Privacy
+- Use strong JWT/mTLS authentication for service-to-service calls.
+- Record audit trails; minimize stored PII; rotate secrets regularly.
+
+## Integration
+- Provide OpenAPI/Swagger docs and client examples (Rust, Node.js, Python).
+- Provide clear webhook flows for Stripe and payment processors.
+
+## Scalability
+- Use queues and rate-limiting; deploy with autoscaling on k8s or Cloud Run.
+
+## Compliance
+- Ensure payment and privacy compliance in deployed regions.

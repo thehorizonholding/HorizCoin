@@ -1,0 +1,25 @@
+CREATE TABLE accounts (
+  account_id TEXT PRIMARY KEY,
+  balance NUMERIC DEFAULT 0,
+  created_at TIMESTAMP DEFAULT now()
+);
+
+CREATE TABLE credits_ledger (
+  id UUID PRIMARY KEY,
+  account_id TEXT REFERENCES accounts(account_id),
+  delta NUMERIC,
+  type TEXT,
+  ref TEXT,
+  created_at TIMESTAMP DEFAULT now()
+);
+
+CREATE TABLE usage_log (
+  id UUID PRIMARY KEY,
+  usage_id TEXT UNIQUE,
+  account_id TEXT REFERENCES accounts(account_id),
+  cost NUMERIC,
+  meta JSONB,
+  created_at TIMESTAMP DEFAULT now()
+);
+
+CREATE INDEX idx_accounts_balance ON accounts(balance);
