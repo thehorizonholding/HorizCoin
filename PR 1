@@ -1,0 +1,43 @@
+# Private-Access Economy (Credits) — Implementation Readme
+
+This folder implements a credits-based billing layer that lets you accept fiat payments (Stripe/invoice) and convert them into internal credits. HorizCoin nodes or APIs then deduct credits per transaction or API call.
+
+Folder structure:
+- service/                # Node/Express microservice
+- migrations/             # SQL schema and migration scripts
+- k8s/                    # k8s manifests
+- examples/               # curl examples and stripe webhooks
+- rust-integration.md     # How to call Credits API from your Rust node
+- POSITIVE_POINTS.md      # Best practices & monetization model guidance
+
+Quickstart (development):
+1. Create a Cloud SQL Postgres instance (or run local Postgres).
+2. Configure `.env` (copy .env.example and fill values).
+3. Run `npm install` inside `service/`.
+4. Run migrations: `psql $DATABASE_URL -f migrations/001_init.sql`.
+5. Start service:
+   - Dev: `npm run dev` inside `service/`
+   - Docker: `docker build -t credits-service ./service && docker run -p 4000:4000 credits-service`
+6. Update HorizCoin node to POST to `/api/credits/usage` when a transaction is processed (see rust-integration.md).
+
+Security & Production Notes:
+- Store DB credentials and Stripe keys in Secret Manager or equivalent.
+- Use mutual TLS between node and credits API, or authenticate with signed JWTs.
+- Enforce rate limits and idempotency keys.
+- Restrict admin endpoints with strong auth and IP allowlists.
+- Keep audit trails and backups encrypted.
+
+Recommended commit contents:
+- private-economy/README.md
+- private-economy/service/*
+- private-economy/migrations/*
+- private-economy/k8s/*
+- private-economy/rust-integration.md
+- .github/workflows/credits-ci.yml
+
+Admin responsibilities:
+- Configure billing cadence, credit-to-fiat mapping, and pricing tiers.
+- Monitor usage and set alerts for suspicious activity.
+- Rotate JWT_SECRET and database credentials regularly.
+
+For integration tasks, see rust-integration.md for example calls and examples/ for webhook snippets and curl commands.
