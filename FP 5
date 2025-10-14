@@ -1,0 +1,52 @@
+# Rust integration notes — calling Credits API from HorizCoin node
+
+This document shows example Rust code and a recommended integration pattern for deducting credits from an account when processing transactions.
+
+Overview:
+1. Node receives a transaction / request from a user.
+2. Compute cost (fee_rate * tx_size or configured cost).
+3. Call Credits API: POST /api/credits/usage with JSON { account_id, usage_id, cost, meta }.
+4. Auth: use a server-signed JWT (or mTLS) for service-to-service auth.
+5. On success, proceed; on 402/insufficient -> reject or queue for retry.
+
+Example (async, using reqwest and serde_json):
+
+```rust
+use reqwest::Client;
+use serde_json::json;
+use std::time::{SystemTime, UNIX_EPOCH};
+
+async fn deduct_credits(api_url: &str, jwt: &str, account_id: &str, usage_id: &str, cost: f64, txid: &str) -> Result<(), Box<dyn std::error::Error>> {
+    let client = Client::new();
+    let body = json!({
+        "account_id": account_id,
+        "usage_id": usage_id,
+        "cost": cost,
+        "meta": { "txid": txid }
+    });
+
+    let res = client.post(format!("{}/api/credits/usage", api_url))
+        .bearer_auth(jwt)
+        .json(&body)
+        .send()
+        .await?;
+
+    if res.status().is_success() {
+        Ok(())
+    } else {
+        let status = res.status();
+        let text = res.text().await.unwrap_or_default();
+        Err(format!("Credits API error: {} - {}", status, text).into())
+    }
+}
+```
+
+Idempotency:
+- Use a deterministic `usage_id` (e.g., hash(txid + action + timestamp)) so retries are safe.
+
+JWT handling:
+- JWTs should be short-lived or rotated periodically.
+- Signing key should be kept in Secret Manager/KMS; node should obtain a signed JWT from a service account if using short-lived tokens.
+
+Deployment:
+- Prefer mTLS for high-assurance deployments or signed JWTs over HTTPS in simpler setups.
