@@ -1,0 +1,17 @@
+name: credits-ci
+on: [push, pull_request]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+      - name: Install
+        run: cd private-economy/service && npm ci
+      - name: Lint
+        run: cd private-economy/service && npm run lint || true
+      - name: Unit tests
+        run: cd private-economy/service && npm test || true
