@@ -1,0 +1,19 @@
+# Examples / curl usage
+
+Create account:
+```bash
+curl -X POST http://localhost:4000/api/accounts -H 'Content-Type: application/json' -d '{"account_id":"org-123"}'
+```
+
+Top up (billing calls this after Stripe success):
+```bash
+curl -X POST http://localhost:4000/api/credits/topup -H 'Content-Type: application/json' -d '{"account_id":"org-123","credits":10000,"tx_ref":"stripe-inv-0123"}'
+```
+
+Node deduct usage (requires Authorization header):
+```bash
+curl -X POST http://localhost:4000/api/credits/usage \
+  -H 'Content-Type: application/json' \
+  -H 'Authorization: Bearer <JWT>' \
+  -d '{"account_id":"org-123","usage_id":"tx-abc-001","cost":1,"meta":{"txid":"abc"}}'
+```
