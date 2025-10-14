@@ -1,0 +1,39 @@
+# Stripe webhook -> Credits top-up example
+
+When Stripe notifies of a successful payment, your billing system should call POST /api/credits/topup with account_id and credits amount.
+
+Example Node webhook (simplified):
+
+```js
+const express = require('express');
+const stripe = require('stripe')(process.env.STRIPE_SECRET);
+const fetch = require('node-fetch');
+
+const app = express();
+app.use(express.json());
+
+app.post('/webhook', async (req, res) => {
+  const event = req.body;
+  // Verify signature in production
+  if (event.type === 'invoice.payment_succeeded') {
+    const invoice = event.data.object;
+    const account_id = invoice.metadata.account_id;
+    const credits = Number(invoice.metadata.credits) || 0;
+
+    // call credits service
+    await fetch(process.env.CREDITS_API + '/api/credits/topup', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + process.env.SERVICE_JWT
+      },
+      body: JSON.stringify({ account_id, credits, tx_ref: invoice.id })
+    });
+  }
+  res.status(200).send('ok');
+});
+```
+
+Notes:
+- Use Stripe webhooks with signature verification (stripe.webhooks.constructEvent) in production.
+- Store mapping between Stripe customers and internal account_id in your billing DB.
