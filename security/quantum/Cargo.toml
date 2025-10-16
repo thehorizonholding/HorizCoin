@@ -1,0 +1,13 @@
+[package]
+name = "security-quantum"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+pqcrypto-kyber = "0.7"     # adjust to the latest compatible version
+aes-gcm = "0.10"
+hkdf = "0.12"
+sha2 = "0.10"
+getrandom = "0.2"
+zeroize = "1.5"
+anyhow = "1.0"
