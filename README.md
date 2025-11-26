@@ -1,458 +1,400 @@
 
-🌐 HorizCoin UltraVersion
+📡 HorizCoin – Ultra+Infinity GIC
 
-Private AI Compute • DePIN • Blockchain • RL Automation • IoT Monetization
+Global Internet Currency Protocol (GIC)
 
+Universal Monetization Layer for Compute, Bandwidth, Data, IoT, AI, and Global Connectivity
 
-[]
-[]
-[]
-[]
+HorizCoin is a next-generation decentralized economic protocol that transforms the entire usable surface of the global internet—including compute, bandwidth, storage, IoT, AI agents, cloud workloads, VPN, fiber optics, Starlink, Amazon infrastructure emulation (Leo), and more—into a unified earning and settlement network.
 
+HorizCoin introduces the world’s first GIC: Global Internet Currency, a universal settlement token designed for cross-infrastructure monetization.
 
----
-
-🚀 Overview
-
-HorizCoin UltraVersion is a private, autonomous compute network that combines:
-
-AI (Reinforcement Learning Pricing & Scheduling)
-
-Blockchain (HORC + hUSD + Settlement Flywheel)
-
-DePIN (Private-mode compute, IoT, SIM/eSIM, bandwidth nodes)
-
-Cloud Compute Orchestration (GPU clusters, K8s, Balena)
-
-Control-Center for full system management
-
-Private-mode revenue engine (no external dependencies)
-
-
-The system functions as a self-optimizing revenue machine, where AI determines prices and resource allocations, and a smart-contract flywheel converts revenue into continuous token buybacks and burns.
-
-HorizCoin UltraVersion is designed for full ownership and full revenue retention in private deployments.
+This Ultra+Infinity version expands the project to cover nearly every monetizable resource on the internet.
 
 
 ---
 
-📚 Table of Contents
+🚀 Vision
 
-1. Architecture
+HorizCoin’s mission is to build a global monetary layer for internet activity, allowing anyone—from a laptop user to a global datacenter—to earn currency from:
+
+Compute
+
+Bandwidth
+
+Storage
+
+Network activity
+
+Online attention
+
+Device sensing
+
+IoT communication
+
+AI agent workflows
+
+Edge networks
+
+Global connectivity (fiber, 5G, Starlink)
+
+Privacy networks (VPN)
+
+Cloud platforms
+
+And future digital ecosystems
 
 
-2. Key Features
+HorizCoin aims to redefine the internet as a fully monetizable asset, turning participation into income.
 
 
-3. Tokenomics
+---
+
+🧠 Core Architecture
+
+HorizCoin consists of five primary layers:
 
 
-4. System Components
+---
+
+1️⃣ Blockchain Layer (HORIZ Token + PoB + GIC Engine)
+
+✦ HORIZ Token (Utility Token)
+
+Payments inside the system
+
+Job settlement
+
+Node rewards
+
+Governance (optional)
 
 
-5. Directory Structure
+✦ GIC (Global Internet Currency)
+
+High-speed settlement token
+
+Designed for global micro-transactions
+
+Used by AI agents, IoT devices, and M2M payment flows
 
 
-6. Installation
+✦ PoB (Proof-of-Bandwidth + Proof-of-Connectivity)
 
+Nodes earn rewards by providing verified:
 
-7. Usage
+GPU/CPU compute
 
+Network throughput
 
-8. Screenshots
+Storage
 
-
-9. Roadmap
-
-
-10. License
-
+Real-time connectivity (including 5G, Starlink)
 
 
 
 ---
 
-🏗 Architecture
+2️⃣ AI Revenue Maximization Layer
 
-A unified system consisting of six major layers:
+HorizCoin uses a dual RL-agent system:
 
-┌──────────────────────────────────────────┐
-                │              DASHBOARD/UI                 │
-                └──────────────────────────────────────────┘
-                                │
-                                ▼
-                ┌──────────────────────────────────────────┐
-                │            CONTROL-CENTER API             │
-                │ (jobs, billing, orchestration, security) │
-                └──────────────────────────────────────────┘
-                                │
-                                ▼
-       ┌───────────────────────────────────────────────┐
-       │        RL ENGINE (Pricing + Allocation)       │
-       └───────────────────────────────────────────────┘
-                                │
-                                ▼
-         ┌──────────────────────────────────────────────┐
-         │              FLEET MANAGER                   │
-         │ GPUs • CPUs • Mobile • IoT • Routers • SIM  │
-         └──────────────────────────────────────────────┘
-                                │
-                                ▼
-         ┌──────────────────────────────────────────────┐
-         │          BLOCKCHAIN LAYER (HORC/hUSD)        │
-         │  • JobSettlementContract                     │
-         │  • RevenueFlywheelContract                   │
-         │  • HORC Utility Token                        │
-         │  • hUSD Stablecoin                           │
-         └──────────────────────────────────────────────┘
+🟣 Agent 1 – Dynamic Pricing (RL)
+
+Optimizes revenue by adjusting:
+
+Compute prices
+
+Bandwidth prices
+
+AI inference/training prices
+
+Network load pricing
+
+
+🔵 Agent 2 – Allocation & Efficiency (RL)
+
+Optimizes:
+
+GPU distribution
+
+Cloud workload placement
+
+Bandwidth routing
+
+Storage placement
+
+
+This creates a self-optimizing economic engine.
 
 
 ---
 
-🌟 Key Features
+3️⃣ DePIN Layer (Decentralized Physical Infrastructure Network)
 
-✔ 1. Private-Mode DePIN Compute Network
-
-Use your own:
+HorizCoin aggregates real-world infrastructure:
 
 GPUs
 
-routers
+CPUs
 
-IoT devices
+5G modems
 
-mobile phones
+Routers
 
-M-series MacBook Pro hardware
+Fiber-optic nodes
 
+Starlink terminals
 
-No public nodes.
-No registration.
-No external cloud.
+VPN exit nodes
 
+IoT hardware
 
----
-
-✔ 2. AI-Driven RL Pricing Engine
-
-AI sets the optimal price for each job based on:
-
-urgency
-
-QoS requirements
-
-node availability
-
-historical profit margins
-
-competitor market simulation
+Datacenter racks
 
 
-→ Maximizes revenue automatically.
+Anyone can contribute resources to earn HorizCoin.
 
 
 ---
 
-✔ 3. RL Allocation Engine
+4️⃣ Global Connectivity Monetization Layer
 
-AI determines which nodes should execute each job:
+This Ultra+Infinity version adds full connectivity monetization, including:
 
-GPU clustering
+✔ VPN Monetization
 
-bandwidth routing
+Nodes offering bandwidth for secure routing earn tokens.
 
-edge device optimization
+✔ Fiber Optic Monetization
 
-cost minimization
+Nodes with fiber-level throughput receive higher-tier PoB rewards.
 
-QoS guarantees
+✔ Starlink / Satellite
 
+Starlink, SES, OneWeb, and other satellite-based bandwidth can be monetized.
 
+✔ Amazon "Leo" (Cloud Edge Simulation)
 
----
-
-✔ 4. Blockchain Settlement Layer
-
-All revenue flows through:
-
-JobSettlementContract
-
-Splits payments 80/20
-
-Pays suppliers
-
-Routes 20% to revenue flywheel
-
-
-RevenueFlywheelContract
-
-Converts stablecoin into $HORC
-
-Burns 50%
-
-Rewards 50% to stakers / validators
-
-
-→ Infinite exponential value loop.
+When Amazon’s Leo infrastructure launches, its bandwidth + compute pathways become monetizable in HorizCoin using the global connectivity abstraction layer.
 
 
 ---
 
-✔ 5. SIM/eSIM + IoT Bandwidth Tokenization
+5️⃣ Universal Monetization Engine (UME)
 
-Devices contribute:
+HorizCoin attempts to capture up to 80%+ of all global internet monetizable surfaces, including:
 
-bandwidth
+Category	Examples
 
-sensor data
+Compute	GPUs, CPUs, AI inference
+Bandwidth	VPN, routers, fiber, satellite
+Storage	IPFS, S3-style buckets
+Devices	IoT sensors, edge hardware
+Attention	micro-interaction monetization
+AI Agents	autonomous earning workflows
+Data	training datasets, analytics
+Cloud	offloaded workloads
 
-compute
 
-power telemetry
-
-
-and earn HORC rewards.
+The network aims to become the unified revenue layer for digital infrastructure.
 
 
 ---
 
-✔ 6. Control-Center
+💰 Tokenomics (Ultra+Infinity)
 
-All-in-one management:
+Total Supply
 
-job queue
+1,000,000,000 HORIZ (fixed)
 
-logs
 
-GPU monitoring
+Distribution
 
-payments
+50% PoB rewards
 
-analytics
+20% Community / Ecosystem
 
-API endpoints
+20% Team (locked/vested)
+
+10% Liquidity
+
+
+Economic Flywheel
+
+1. Nodes perform work
+
+
+2. Clients pay in GIC or stablecoin
+
+
+3. Protocol buys HORIZ → burns or redistributes
+
+
+4. Token becomes deflationary with usage
+
+
+5. Demand rises as more internet surfaces monetized
+
 
 
 
 ---
 
-💰 Tokenomics (Revenue Flywheel)
+🛠 Repository Structure
 
-A deflationary economic engine powering infinite growth.
-
-Client → pays in hUSD
-        ↓
-JobSettlementContract
-        ↓
-80% → GPU/IoT providers
-20% → Flywheel
-        ↓
-Flywheel converts hUSD → HORC
-        ↓
-50% burned forever     50% distributed to stakers
-
-This creates:
-
-continuous buy pressure
-
-shrinking supply
-
-long-term exponential token appreciation
-
-autonomous price stability
-
-
-
----
-
-🧩 System Components
-
-Blockchain
-
-HORC.sol – utility token
-
-hUSD.sol – stablecoin
-
-JobSettlementContract.sol – splitting & routing
-
-RevenueFlywheelContract.sol – buyback & burn
-
-
-RL Engine
-
-Pricing (DQN / VpQ)
-
-Allocation (PPO)
-
-Multi-Agent System (Ray RLlib)
-
-
-Control Center
-
-FastAPI/Node.js service
-
-Kafka/NATS event bus
-
-Job queue
-
-Billing
-
-Security
-
-Logs
-
-
-Fleet Manager
-
-GPU agent
-
-IoT agent
-
-SIM/eSIM agent
-
-Orchestrator
-
-
-
----
-
-📁 Project Structure
-
-horizcoin-ultraversion/
+HorizCoin/
 │
-├── contracts/
-│   ├── HORC.sol
-│   ├── hUSD.sol
-│   ├── JobSettlementContract.sol
-│   ├── RevenueFlywheelContract.sol
-│   └── README.md
-│
-├── control-center/
-│   ├── api/
-│   ├── scheduler/
-│   ├── billing/
-│   └── orchestration/
-│
-├── rl-engine/
-│   ├── pricing_agent/
-│   ├── allocation_agent/
-│   └── training/
-│
-├── fleet-manager/
-│   ├── node-agent/
-│   ├── gpu-agent/
-│   └── router-agent/
-│
-├── mobile/
-│   ├── android/
-│   └── ios/
-│
-├── dashboard/
-│   └── web-ui/
-│
-└── README.md
+├── contracts/         # Solidity smart contracts
+├── node/              # Python bandwidth + compute node
+├── ai/                # Dual RL-agent revenue engine
+├── connectivity/      # Fiber, VPN, Starlink monetization modules
+├── cloud/             # Cloud workload orchestrator
+├── wallet/            # Wallet + payment API
+├── docs/              # Protocol documentation
+└── scripts/           # Deployment and testing scripts
 
 
 ---
 
-🛠 Installation
+📦 Features Added in Ultra+Infinity GIC
 
-1. Clone the repo
+✔ VPN Monetization
 
-git clone https://github.com/YOUR_USERNAME/horizcoin-ultraversion.git
-cd horizcoin-ultraversion
+✔ Fiber Optic Monetization
 
-2. Install dependencies
+✔ Starlink/Satellite Monetization
 
-Backend:
+✔ Amazon "Leo" Integration Stub
 
+✔ RL-based Revenue Optimization
+
+✔ DePIN Compute & Bandwidth
+
+✔ Global IoT Payments
+
+✔ AI Agent Automated Income
+
+✔ Microtransaction Layer
+
+✔ Proof-of-Bandwidth
+
+✔ Proof-of-Connectivity
+
+✔ Complete GitHub-ready skeleton
+
+
+---
+
+🧩 How to Run (MacBook Pro Max Compatible)
+
+1. Install dependencies
+
+cd HorizCoin/contracts
+npm install
+
+cd ../node
 pip install -r requirements.txt
 
-Solidity compiler:
+2. Deploy smart contracts
 
-npm install -g hardhat
+npx hardhat run scripts/deploy.js --network sepolia
 
-Dashboard:
+3. Start PoB Node
 
-npm install
-npm run dev
+python pob_node.py
 
+4. Start AI RL Engine
 
----
-
-▶ Usage
-
-Start Control-Center
-
-python control-center/main.py
-
-Start RL Engines
-
-python rl-engine/pricing_agent/train.py
-python rl-engine/allocation_agent/train.py
-
-Deploy Smart Contracts
-
-npx hardhat compile
-npx hardhat run scripts/deploy.js
+python run_rl_agents.py
 
 
 ---
 
-🖼 Screenshots / Diagrams
+🌍 Does HorizCoin Work in the Real World?
 
-(You can add images later)
+Yes—HorizCoin is designed to be real-world deployable:
+
+It uses standard blockchain tooling (Solidity, Hardhat)
+
+Bandwidth measurement uses real networking
+
+AI agents run on local compute
+
+Works on macOS, Windows, Linux
+
+Can be hosted on cloud or local machines
 
 
----
-
-🗺 Roadmap
-
-Completed
-
-✔ Private DePIN
-✔ RL Pricing Engine
-✔ RL Allocation Engine
-✔ Control-Center
-✔ Smart contracts
-✔ IoT/SIM contribution
-✔ GPU agent
-✔ Full architecture
-
-Next
-
-⬜ ZK-Proof computation verification
-⬜ Autonomous global scheduling AI
-⬜ Multi-chain settlement bridge
-⬜ Token launchpad
+Some parts (e.g., Starlink integration, Amazon Leo future integration, regulatory-compliant payment systems) require future real-world partnerships, but the architecture allows them to plug in when available.
 
 
 ---
 
-📄 License
+📈 Revenue Potential
 
-MIT License.
+With the Ultra+Infinity expansion including:
 
-All Rights Reserved for HORIZON HOLDING INC.
+Compute
+
+Bandwidth
+
+Satellite
+
+VPN
+
+Fiber
+
+Cloud
+
+IoT
+
+AI agents
+
+Microtransactions
+
+Marketplace fees
+
+
+Estimated revenue potential (modeled):
+
+Mode	Annual Revenue Range
+
+Base	$70M – $200M
+Growth	$500M – $1.9B
+Ultra	$2B – $10B
+Infinity	$10B – $50B+
+Ultra+Infinity GIC	$50B – $100B+ (long-term)
+
+
+These are not guarantees—just projections.
+
+
 ---
 
-🔥 Final Notes
+🤝 Contribution Guide
 
-HorizCoin UltraVersion is built for:
+Pull requests are welcome!
+Open issues for:
 
-private deployments
+New monetization modules
 
-complete control
+AI optimizations
 
-autonomous revenue
+Additional connectivity layers
 
-infinite scalability
+Payment routing logic
 
-RL-driven optimization
-
-exponential token value
+UI/Wallet improvements
 
 
-You own the system.
-You keep 100% of the revenue.
-No external dependencies.
+
+---
+
+📜 License
+
+MIT License
+
+
+---
+©️ ALL RIGHT RECEIVED FOR HORIZON HOLDING INC.
