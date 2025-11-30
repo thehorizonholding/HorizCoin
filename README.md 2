@@ -1,0 +1,13 @@
+# HorizCoin Infinite Mint Exploit PoC (Private Solo)
+
+Enables atomic $100B extraction via public mint flaw + flash loan + MEV-optimized liquidation.
+
+**For red-teaming / audit only — never ship public mint()**
+
+### Quick Solo Setup
+```bash
+npm install
+# Add your burner key to hardhat.config.js
+npm run deploy   # deploys both contracts
+npm run test     # verifies exploit works
+python scripts/mev-solver/MEV_Solver.py   # run solver

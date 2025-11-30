@@ -1,0 +1,13 @@
+{
+  "name": "horizcoin-exploit-poc",
+  "version": "1.0.0",
+  "description": "Private infinite-mint exploit PoC",
+  "scripts": {
+    "test": "hardhat test",
+    "deploy": "hardhat run scripts/deployment_script.js --network mumbai"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+    "hardhat": "^2.22.2"
+  }
+}
