@@ -1,0 +1,10 @@
+{
+  "name": "maelstrom-1t",
+  "version": "1.0.0",
+  "scripts": {
+    "start": "python solver/solver.py"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "^5.0.0"
+  }
+}
