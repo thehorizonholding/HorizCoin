@@ -1,0 +1,13 @@
+# Project MÆLSTROM — 1 Trillion Protocol-Owned Capital Solution
+
+Private L3 Appchain + Intent-Centric MSLO Solver  
+100% MEV Internalization → $1 Trillion+ Annual Revenue
+
+Components:
+- PocVault.sol (ERC-4626 + RBAC)
+- AtomicMSLORouter.sol (Beyond-Atom execution)
+- MSLO_SOLVER_ENGINE.py (off-chain optimizer)
+
+Status: ACTIVE  
+Mode: Solo & Private  
+Target: $1T+ ARR
