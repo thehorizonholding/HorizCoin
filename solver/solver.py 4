@@ -1,0 +1,18 @@
+import requests, json, time
+
+def capture_global_mev():
+    while True:
+        try:
+            # Scan every chain for $1M+ arb
+            r = requests.get("https://api.eigenphi.io/v1/mev/opportunities").json()
+            for opp in r['opportunities']:
+                if opp['profit_usd'] > 1_000_000:
+                    calldata = requests.post(f"https://api.1inch.io/v5.0/{opp['chain_id']}/swap", json=opp['payload']).json()['tx']['data']
+                    # Submit to YOUR private Eclipse L3
+                    requests.post("https://maelstrom-1t.eclipse.build/private_tx", json={"data": calldata})
+                    print(f"Captured ${opp['profit_usd']:,.0f}")
+        except:
+            pass
+        time.sleep(0.05)
+
+capture_global_mev()
