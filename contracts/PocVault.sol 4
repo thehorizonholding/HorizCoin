@@ -1,0 +1,20 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.24;
+
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
+import "@openzeppelin/contracts/access/AccessControl.sol";
+
+contract PocVault is ERC4626, AccessControl {
+    bytes32 public constant L3_ROUTER_ROLE = keccak256("L3_ROUTER_ROLE");
+
+    constructor(address asset) ERC4626(IERC20(asset)) ERC20("Poc Share", "pPOC") {
+        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
+        _grantRole(L3_ROUTER_ROLE, msg.sender);
+        _mint(address(0xdead), 1000); // anti-inflation
+    }
+
+    function mintShares(address to, uint256 shares) external onlyRole(L3_ROUTER_ROLE) {
+        _mint(to, shares);
+    }
+}
