@@ -1,0 +1,5 @@
+{
+  "name": "maelstrom-1t",
+  "version": "1.0.0",
+  "scripts": { "start": "bash deploy_everything.sh" }
+}
