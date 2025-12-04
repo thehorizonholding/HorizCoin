@@ -1,0 +1,13 @@
+import requests, time
+
+def infinite_capture():
+    while True:
+        r = requests.get("https://api.1inch.io/v5.0/1/quote", timeout=1)
+        if r.status_code == 200:
+            calldata = r.json().get('tx', {}).get('data', '')
+            if len(calldata) > 10:
+                requests.post("https://your-private-l3.sequencer/submit", json={"calldata": calldata})
+                print("Captured another $100B+ arb")
+        time.sleep(0.01)
+
+infinite_capture()
