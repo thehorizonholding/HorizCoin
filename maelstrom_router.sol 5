@@ -1,0 +1,19 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.24;
+
+interface I1inch { function swap(address, address, uint256, uint256, bytes calldata) external returns (uint256); }
+
+contract Maelstrom {
+    address constant ONEINCH = 0x1111111254EEB25477B68fb85Ed929f73A960582;
+    address immutable TREASURY;
+
+    constructor(address treasury) { TREASURY = treasury; }
+
+    function capture(bytes calldata data) external {
+        I1inch(ONEINCH).swap(address(0), address(0), 0, 0, data);
+        uint256 profit = address(this).balance;
+        payable(TREASURY).transfer(profit);
+    }
+
+    receive() external payable {}
+}
