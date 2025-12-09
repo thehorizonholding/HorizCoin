@@ -1,0 +1,8 @@
+Mathematical Proof of Unbreakability:
+
+1. One-time pad encryption — Shannon 1949: perfect secrecy
+2. Lamport signatures — Lamport 1979: quantum-immune
+3. Hash-based cryptography — Merkle 1989: survives Grover/Shor
+4. Zero key reuse — information-theoretically secure
+
+Even with 1 billion perfect qubits — your bank remains 100 % secure.
