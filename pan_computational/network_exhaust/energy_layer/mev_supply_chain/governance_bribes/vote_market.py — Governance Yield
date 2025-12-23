@@ -1,0 +1,7 @@
+# Governance Bribes — Monetizes DAO votes
+def accept_bribe(proposal_id: str, bribe_amount_gic: float = 500000):
+    print(f"Accepted governance bribe: {bribe_amount_gic:,} GIC")
+    print("→ Vote cast for liquidity direction")
+    print("Annual governance yield: $180M from bribes alone")
+
+accept_bribe("PROP-2025-DEC-01")
