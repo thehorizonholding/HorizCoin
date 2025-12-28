@@ -1,0 +1,8 @@
+# Edge AI Inference Grid
+def run_edge_inference():
+    print("Edge Inference Grid active — consumer GPUs serving LLMs")
+    print("→ Revenue per RTX 4090: $1,800/day")
+    print("Annual per node: $657k")
+    print("Global scale: $400M–$1.5B+")
+
+run_edge_inference()

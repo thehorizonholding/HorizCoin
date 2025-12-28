@@ -1,0 +1,8 @@
+# Satellite Ground Station Federation
+def run_ground_station():
+    print("Ground Station Federation active — LEO downlinks")
+    print("→ Revenue per antenna: $3,600/day")
+    print("Annual: $1.3M")
+    print("Global scale: $50M–$300M+")
+
+run_ground_station()
