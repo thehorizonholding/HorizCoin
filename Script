@@ -1,0 +1,62 @@
+const { ethers } = require("hardhat");
+require("dotenv").config();
+
+async function main() {
+    const [deployer] = await ethers.getSigners();
+    const OMEGA = process.env.OMEGA_COUNCIL;
+
+    console.log("Deploying from:", deployer.address);
+
+    // 1. HorizCoin
+    const Horiz = await ethers.getContractFactory("HorizCoin");
+    const horiz = await Horiz.deploy();
+    await horiz.waitForDeployment();
+    console.log("HorizCoin:", await horiz.getAddress());
+
+    // 2. Bonding Curve
+    const Curve = await ethers.getContractFactory("HorizBondingCurve");
+    const curve = await Curve.deploy(await horiz.getAddress(), "0xA0b869198765DE67f4B1e9eDeA11F9D3A4b1e9eDe");
+    await curve.waitForDeployment();
+    console.log("BondingCurve:", await curve.getAddress());
+
+    // 3. GovernanceProxy (mGOOGL)
+    const Proxy = await ethers.getContractFactory("GovernanceProxy");
+    const proxy = await Proxy.deploy("mGOOGL", "mGOOGL", deployer.address);
+    await proxy.waitForDeployment();
+    console.log("GovernanceProxy:", await proxy.getAddress());
+
+    // 4. VampireMigrator
+    const Migrator = await ethers.getContractFactory("VampireMigrator");
+    const migrator = await Migrator.deploy(await horiz.getAddress(), await proxy.getAddress(), "0x_mock_custodian");
+    await migrator.waitForDeployment();
+    console.log("VampireMigrator:", await migrator.getAddress());
+
+    // 5. GlobalLBO
+    const LBO = await ethers.getContractFactory("GlobalLBO");
+    const lbo = await LBO.deploy(deployer.address, await migrator.getAddress());
+    await lbo.setGooglToken(process.env.GOOGL_SYNTH);
+    await lbo.setHorizCurve(await curve.getAddress());
+    await lbo.waitForDeployment();
+    console.log("GlobalLBO:", await lbo.getAddress());
+
+    // 6. WyomingDAO
+    const DAO = await ethers.getContractFactory("WyomingDAO");
+    const dao = await DAO.deploy(await horiz.getAddress(), OMEGA);
+    await dao.waitForDeployment();
+    console.log("WyomingDAO:", await dao.getAddress());
+
+    // Transfer ownership to DAO
+    await lbo.transferOwnership(await dao.getAddress());
+    await proxy.transferOwnership(await dao.getAddress());
+
+    // Seed rewards
+    await horiz.mint(await migrator.getAddress(), ethers.parseEther("1000000"));  // 1M HORIZ
+
+    console.log("\n🚀 DEPLOYMENT COMPLETE. GENESIS BLOCK MINED.");
+    console.log("Next: npx hardhat initiate:vampire");
+}
+
+main().catch((error) => {
+  console.error(error);
+  process.exit(1);
+});
