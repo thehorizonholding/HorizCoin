@@ -1,0 +1,14 @@
+const { ethers } = require("hardhat");
+
+async function main() {
+    const [, signer] = await ethers.getSigners();  // Use funded signer
+    const lbo = await ethers.getContractAt("GlobalLBO", "0x_deployed_lbo_address");
+
+    const amount = process.argv[2] || "1000000000000";  // $1B default
+    const tx = await lbo.initiateConquest(ethers.parseUnits(amount, 6), 5);  // 5 loops
+    await tx.wait();
+    console.log("Conquest Loop Executed. TX:", tx.hash);
+    console.log("Loops Complete:", await lbo.loopCount());
+}
+
+main();
