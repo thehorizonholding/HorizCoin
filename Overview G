@@ -1,0 +1,24 @@
+# HorizCoin Project Overview
+
+## Vision
+HorizCoin enables synthetic ownership of RWAs (stocks, indices) via DeFi tools. Start with Alphabet (GOOGL) tokenization, scale to global indices. Funding: HORIZ token presale (target $100M).
+
+## Real-World Integration
+- **Exchanges**: Use IExchangeWrapper for Uniswap/Synthetix swaps.
+- **Oracles**: Chainlink for stock prices.
+- **Brokers**: Future API integration (e.g., Alpaca for real ETFs).
+- **Regulations**: Structure as DAO in Wyoming/Cayman. Synthetics avoid direct buys.
+
+## Execution Steps
+1. Deploy contracts.
+2. Launch HORIZ on Uniswap.
+3. Run LBO for mGOOGL acquisition.
+4. Build index for "world stocks" exposure.
+5. Scale via loops (max 10/tx to avoid gas).
+
+## Obstacles & Solutions
+- **Liquidity**: Flash loans + curves.
+- **Regs**: Synthetics + offshore entities.
+- **Scale**: Start with 0.01% exposure, iterate.
+
+Contact: [Your email/Twitter].

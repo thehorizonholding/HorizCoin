@@ -1,0 +1,35 @@
+const { ethers } = require("hardhat");
+
+async function main() {
+    // Deploy HorizCoin
+    const HorizCoin = await ethers.getContractFactory("HorizCoin");
+    const horiz = await HorizCoin.deploy();
+    await horiz.waitForDeployment();
+    console.log("HorizCoin deployed to:", await horiz.getAddress());
+
+    // Deploy GlobalLBO (pass owner)
+    const GlobalLBO = await ethers.getContractFactory("GlobalLBO");
+    const lbo = await GlobalLBO.deploy(await ethers.getSigners()[0].getAddress());  // Owner is deployer
+    await lbo.waitForDeployment();
+    console.log("GlobalLBO deployed to:", await lbo.getAddress());
+
+    // Deploy GovernanceProxy (e.g., for mGOOGL)
+    const GovernanceProxy = await ethers.getContractFactory("GovernanceProxy");
+    const proxy = await GovernanceProxy.deploy("mGOOGL", "mGOOGL", await ethers.getSigners()[0].getAddress());  // DST = deployer
+    await proxy.waitForDeployment();
+    console.log("GovernanceProxy deployed to:", await proxy.getAddress());
+
+    // Deploy HorizGlobalIndex
+    const HorizGlobalIndex = await ethers.getContractFactory("HorizGlobalIndex");
+    const index = await HorizGlobalIndex.deploy(await lbo.getAddress(), await ethers.getSigners()[0].getAddress());
+    await index.waitForDeployment();
+    console.log("HorizGlobalIndex deployed to:", await index.getAddress());
+
+    // Verify on Etherscan (if API key set)
+    // await hre.run("verify:verify", { address: await horiz.getAddress(), constructorArguments: [] });
+}
+
+main().catch((error) => {
+    console.error(error);
+    process.exitCode = 1;
+});

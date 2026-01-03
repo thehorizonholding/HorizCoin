@@ -1,0 +1,64 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.19;
+
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "../contracts/GlobalLBO.sol";  // Import for integration
+
+/**
+ * @title HorizGlobalIndex
+ * @dev Vault for tokenizing synthetic global stock exposure (e.g., via ETF swaps/oracles).
+ * Simulates "acquisition" by buying synthetics/ETFs. Integrates with LBO for leverage.
+ * Uses Chainlink for price feeds (real-world oracle).
+ */
+interface IChainlinkOracle {
+    function latestRoundData() external view returns (uint80, int256, uint256, uint256, uint80);
+}
+
+contract HorizGlobalIndex is ERC20, Ownable {
+    address public constant USDC = 0xA0b869198765DE67f4B1e9eDeA11F9D3A4b1e9eDe;
+    address public constant VT_ETF_TOKEN = 0x...;  // Synthetic VT (Vanguard Total World ETF) or real via wrapper
+    address public constant CHAINLINK_VT_USD = 0x...;  // Chainlink feed for VT/USD (e.g., 0x... for custom)
+    GlobalLBO public lbo;
+
+    uint256 public totalAcquiredValue;  // In USD
+
+    event GlobalBuy(address indexed buyer, uint256 usdcAmount, uint256 tokensAcquired);
+    event TakeoverExecuted(uint256 totalValue);
+
+    constructor(address _lbo, address owner) ERC20("Horiz Global Index", "HGI") Ownable(owner) {
+        lbo = GlobalLBO(_lbo);
+    }
+
+    // Buy synthetic global stocks (e.g., VT ETF tokens)
+    function buyWorld(uint256 usdcAmount) external onlyOwner {
+        // Approve LBO for flash loan leverage
+        IERC20(USDC).approve(address(lbo), usdcAmount);
+
+        // Use LBO to acquire (swaps USDC -> VT tokens via exchange wrapper)
+        lbo.initiateSingleConquest(usdcAmount, 0);  // Adjust params
+
+        // Mint HGI tokens proportional to acquired value (use oracle for price)
+        (, int256 price,,,) = IChainlinkOracle(CHAINLINK_VT_USD).latestRoundData();
+        require(price > 0, "Invalid oracle");
+        uint256 vtAcquired = IERC20(VT_ETF_TOKEN).balanceOf(address(this));
+        uint256 hgiToMint = (vtAcquired * uint256(price)) / 1e8;  // Adjust decimals
+
+        _mint(msg.sender, hgiToMint);
+        totalAcquiredValue += usdcAmount;
+
+        emit GlobalBuy(msg.sender, usdcAmount, vtAcquired);
+    }
+
+    // Execute "total takeover" loop (leverages LBO)
+    function executeTotalTakeover(uint256 initialUsdc, uint256 maxLoops) external onlyOwner {
+        lbo.initiateConquestLoop(initialUsdc, maxLoops);
+        emit TakeoverExecuted(totalAcquiredValue);
+    }
+
+    // Withdraw acquired tokens for redemption
+    function withdrawTokens(address token, uint256 amount) external onlyOwner {
+        IERC20(token).transfer(owner(), amount);
+    }
+}

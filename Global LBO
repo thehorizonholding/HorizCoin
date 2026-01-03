@@ -1,0 +1,100 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.19;
+
+import "@aave/core-v3/contracts/interfaces/IPoolAddressesProvider.sol";
+import "@aave/core-v3/contracts/interfaces/IPool.sol";
+import "@aave/core-v3/contracts/flashloan/base/FlashLoanSimpleReceiverBase.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "../interfaces/IHorizBondingCurve.sol";
+import "../interfaces/IExchangeWrapper.sol";
+
+contract GlobalLBO is FlashLoanSimpleReceiverBase, Ownable {
+    IPoolAddressesProvider public constant ADDRESSES_PROVIDER =
+        IPoolAddressesProvider(0x2f39d218133AFaB8F2B819B1066c7E434Ad94E9e);  // Ethereum Mainnet Aave V3
+    address public constant USDC = 0xA0b869198765DE67f4B1e9eDeA11F9D3A4b1e9eDe;  // USDC on Ethereum
+    address public constant GOOGL_TOKEN = 0x...;  // Replace with synthetic GOOGL (e.g., from Synthetix)
+    address public constant HORIZ_CURVE = 0x...;  // Your bonding curve address
+
+    uint256 public loopCount;
+    uint256 public constant MAX_LOOPS = 10;
+
+    struct LBOParams {
+        uint256 amountToAcquire;
+        uint256 minHorizOutput;
+        uint256 maxLoops;
+    }
+
+    event LBOExecuted(uint256 googlAcquired, uint256 horizMinted, uint256 borrowAmount, uint256 profit);
+    event ConquestInitiated(uint256 loanAmount, uint256 loops);
+
+    constructor(address owner) Ownable(owner) {}
+
+    function executeOperation(
+        address asset,
+        uint256 amount,
+        uint256 premium,
+        address initiator,
+        bytes calldata params
+    ) external override returns (bool) {
+        require(msg.sender == address(POOL), "Unauthorized");
+        require(asset == USDC, "Invalid asset");
+        require(initiator == address(this), "Invalid initiator");
+
+        LBOParams memory lboParams = abi.decode(params, (LBOParams));
+        uint256 amountToRepay = amount + premium;
+
+        // 1. Swap USDC for GOOGL (synthetic/real via wrapper)
+        uint256 googlAcquired = IExchangeWrapper(GOOGL_TOKEN).swap(USDC, amount, lboParams.amountToAcquire);
+        require(googlAcquired >= lboParams.amountToAcquire * 95 / 100, "Slippage too high");
+
+        // 2. Deposit to bonding curve, mint HORIZ
+        IERC20(GOOGL_TOKEN).approve(HORIZ_CURVE, googlAcquired);
+        uint256 horizMinted = IHorizBondingCurve(HORIZ_CURVE).deposit(GOOGL_TOKEN, googlAcquired);
+        require(horizMinted >= lboParams.minHorizOutput, "Insufficient HORIZ");
+
+        // 3. Borrow USDC against HORIZ
+        uint256 borrowAmount = IHorizBondingCurve(HORIZ_CURVE).borrow(horizMinted, USDC);
+
+        // 4. Solvency check
+        uint256 profit = borrowAmount - amountToRepay;
+        require(borrowAmount >= amountToRepay, "Insolvency");
+        require(profit > 0, "No profit");
+
+        // 5. Repay
+        IERC20(USDC).approve(address(POOL), amountToRepay);
+        IERC20(USDC).transfer(owner(), profit);  // Profit to owner
+
+        emit LBOExecuted(googlAcquired, horizMinted, borrowAmount, profit);
+        return true;
+    }
+
+    function initiateSingleConquest(uint256 usdcAmount, uint256 minHorizOutput) external onlyOwner {
+        bytes memory params = abi.encode(LBOParams({
+            amountToAcquire: usdcAmount,
+            minHorizOutput: minHorizOutput,
+            maxLoops: 1
+        }));
+
+        POOL.flashLoanSimple(address(this), USDC, usdcAmount, params, 0);
+        emit ConquestInitiated(usdcAmount, 1);
+    }
+
+    // Simplified loop (call single multiple times externally to avoid gas limits)
+    function initiateConquestLoop(uint256 initialAmount, uint256 maxLoops) external onlyOwner {
+        require(maxLoops <= MAX_LOOPS, "Exceeds max");
+        loopCount = 0;
+        uint256 currentAmount = initialAmount;
+
+        for (uint256 i = 0; i < maxLoops; i++) {
+            initiateSingleConquest(currentAmount, 0);  // Adjust minOutput as needed
+            currentAmount = currentAmount * 105 / 100;  // Assume 5% growth; replace with real calc
+            loopCount++;
+        }
+        emit ConquestInitiated(initialAmount, maxLoops);
+    }
+
+    function withdrawToken(address token, uint256 amount) external onlyOwner {
+        IERC20(token).transfer(owner(), amount);
+    }
+}
