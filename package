@@ -1,0 +1,23 @@
+{
+  "name": "horizcoin",
+  "version": "1.0.0",
+  "description": "HorizCoin: RWA Tokenization and Leveraged Acquisition Protocol for Synthetic Global Assets",
+  "main": "index.js",
+  "scripts": {
+    "compile": "hardhat compile",
+    "test": "hardhat test",
+    "deploy": "hardhat run scripts/deploy.js --network localhost",
+    "deploy:sepolia": "hardhat run scripts/deploy.js --network sepolia",
+    "deploy:mainnet": "hardhat run scripts/deploy.js --network mainnet"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^4.0.0",
+    "hardhat": "^2.19.0",
+    "@openzeppelin/contracts": "^5.0.2",
+    "@aave/core-v3": "npm:https://github.com/aave/aave-v3-core.git#v1.19.3",
+    "chai": "^4.3.10"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts-upgradeable": "^5.0.2"
+  }
+}
