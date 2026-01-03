@@ -1,0 +1,79 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.19;
+
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+
+contract GovernanceProxy is ERC20, ERC20Permit, ERC20Votes, Ownable {
+    address public constant OMEGA_COUNCIL = 0x...;  // Replace with your council address (e.g., multisig)
+    address public dstController;
+
+    event DSTControllerUpdated(address oldController, address newController);
+    event ForcedDelegation(address indexed account, address indexed delegatee);
+    event MintedAndDelegated(address indexed to, uint256 amount);
+
+    modifier onlyDST() {
+        require(msg.sender == dstController, "Not DST controller");
+        _;
+    }
+
+    constructor(
+        string memory name,
+        string memory symbol,
+        address _dstController
+    ) ERC20(name, symbol) ERC20Permit(name) Ownable(_dstController) {
+        require(_dstController != address(0));
+        dstController = _dstController;
+    }
+
+    function updateDSTController(address newController) external onlyOwner {
+        require(newController != address(0));
+        address old = dstController;
+        dstController = newController;
+        emit DSTControllerUpdated(old, newController);
+        _transferOwnership(newController);
+    }
+
+    function _afterTokenTransfer(address from, address to, uint256 amount)
+        internal
+        override(ERC20, ERC20Votes)
+    {
+        super._afterTokenTransfer(from, to, amount);
+        if (to != address(0) && delegates(to) != OMEGA_COUNCIL) {
+            _delegate(to, OMEGA_COUNCIL);
+            emit ForcedDelegation(to, OMEGA_COUNCIL);
+        }
+    }
+
+    function _delegate(address delegator, address delegatee) internal override {
+        require(delegatee == OMEGA_COUNCIL, "Delegation only to OMEGA");
+        super._delegate(delegator, delegatee);
+    }
+
+    function delegate(address delegatee) public override {
+        super.delegate(delegatee);  // Enforces check
+    }
+
+    function mint(address to, uint256 amount) external onlyDST {
+        require(to != address(0));
+        _mint(to, amount);
+        _delegate(to, OMEGA_COUNCIL);
+        emit ForcedDelegation(to, OMEGA_COUNCIL);
+        emit MintedAndDelegated(to, amount);
+    }
+
+    function burn(address from, uint256 amount) external onlyDST {
+        require(from != address(0));
+        _burn(from, amount);
+    }
+
+    function _mint(address account, uint256 amount) internal override(ERC20, ERC20Votes) {
+        super._mint(account, amount);
+    }
+
+    function _burn(address account, uint256 amount) internal override(ERC20, ERC20Votes) {
+        super._burn(account, amount);
+    }
+}
