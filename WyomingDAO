@@ -1,0 +1,26 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.19;
+
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "./HorizCoin.sol";
+
+contract WyomingDAO is Ownable {
+    HorizCoin public horiz;
+    address public omegaCouncil;
+
+    constructor(address _horiz, address _omega) Ownable(msg.sender) {
+        horiz = HorizCoin(_horiz);
+        omegaCouncil = _omega;
+    }
+
+    // Execute LBO via DAO proposal (simplified)
+    function executeLBO(uint256 amount) external onlyOwner {
+        GlobalLBO(/* lbo address */).initiateConquest(amount, 5);
+    }
+
+    // Anonymous voting (HORIZ holders)
+    function voteOnMigration(uint256 proposalId, bool support) external {
+        require(horiz.balanceOf(msg.sender) > 0, "No stake");
+        // Emit vote event for off-chain tally
+    }
+}
