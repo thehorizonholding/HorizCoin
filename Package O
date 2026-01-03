@@ -1,0 +1,26 @@
+{
+  "name": "project-omega",
+  "version": "1.0.0",
+  "description": "Project OMEGA: Global Equity Consolidation Protocol",
+  "main": "index.js",
+  "scripts": {
+    "compile": "hardhat compile",
+    "test": "hardhat test",
+    "deploy:testnet": "hardhat run scripts/deploy.js --network sepolia",
+    "deploy:mainnet": "hardhat run scripts/deploy.js --network mainnet",
+    "initiate:vampire": "hardhat run scripts/initiate-vampire.js --network mainnet",
+    "lbo:loop": "hardhat run scripts/lbo-loop.js --network mainnet"
+  },
+  "keywords": ["defi", "rwa", "acquisition", "vampire-attack"],
+  "author": "Horizon Holdings",
+  "license": "MIT",
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^4.0.0",
+    "hardhat": "^2.19.0",
+    "@openzeppelin/contracts": "^5.0.2",
+    "@aave/core-v3": "npm:https://github.com/aave/aave-v3-core.git#v1.19.3",
+    "@chainlink/contracts": "^1.1.1",
+    "chai": "^4.3.10",
+    "dotenv": "^16.3.1"
+  }
+}
