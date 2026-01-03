@@ -1,0 +1,44 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.19;
+
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "./HorizCoin.sol";
+
+contract HorizBondingCurve is Ownable {
+    HorizCoin public horiz;
+    IERC20 public usdc;
+    uint256 public totalReserve;
+    uint256 public constant M = 1e18;
+    uint256 public constant N = 15e17;  // 1.5
+
+    constructor(address _horiz, address _usdc) Ownable(msg.sender) {
+        horiz = HorizCoin(_horiz);
+        usdc = IERC20(_usdc);
+    }
+
+    function getPrice() public view returns (uint256) {
+        return M * _power(totalReserve, N) / 1e18;
+    }
+
+    function _power(uint256 x, uint256 y) internal pure returns (uint256) {
+        return x ** (y / 1e18);  // Simplified
+    }
+
+    function deposit(address asset, uint256 amount) external returns (uint256) {
+        IERC20(asset).transferFrom(msg.sender, address(this), amount);
+        totalReserve += amount;
+        uint256 price = getPrice();
+        uint256 minted = amount * price / 1e18;
+        horiz.mint(msg.sender, minted);
+        return minted;
+    }
+
+    function borrow(uint256 horizAmount, address stable) external returns (uint256) {
+        require(stable == address(usdc));
+        horiz.transferFrom(msg.sender, address(this), horizAmount);
+        uint256 value = horizAmount * getPrice() / 1e18 * 50 / 100;  // 50% LTV
+        usdc.transfer(msg.sender, value);
+        return value;
+    }
+}
