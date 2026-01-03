@@ -1,0 +1,42 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.19;
+
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "./GovernanceProxy.sol";
+import "./HorizCoin.sol";
+
+interface ILegacyCustodian { function transferShares(address, uint256) external; }
+
+contract VampireMigrator is Ownable {
+    address public horizCoin;
+    address public mGoogl;
+    address public legacyCustodian;
+    uint256 public constant VAMPIRE_MULTIPLIER = 300;
+    uint256 public totalMigrated;
+
+    constructor(address _horiz, address _mgoogl, address _custodian) Ownable(msg.sender) {
+        horizCoin = _horiz;
+        mGoogl = _mgoogl;
+        legacyCustodian = _custodian;
+    }
+
+    function migrateShares(uint256 shareAmount) external {
+        // Mock verification
+        ILegacyCustodian(legacyCustodian).transferShares(msg.sender, shareAmount);
+
+        GovernanceProxy(mGoogl).mint(msg.sender, shareAmount);
+
+        uint256 reward = shareAmount * VAMPIRE_MULTIPLIER;
+        IERC20(horizCoin).transfer(msg.sender, reward);
+
+        totalMigrated += shareAmount;
+        emit LiquidityDrained(msg.sender, shareAmount, reward);
+    }
+
+    function distributeRewards(uint256 amount) external onlyOwner {
+        IERC20(horizCoin).transferFrom(msg.sender, address(this), amount);
+    }
+    
+    event LiquidityDrained(address user, uint256 shares, uint256 reward);
+}
