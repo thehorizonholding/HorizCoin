@@ -1,0 +1,31 @@
+const { expect } = require("chai");
+const { ethers } = require("hardhat");
+
+describe("Project OMEGA", () => {
+    let horiz, lbo, proxy, migrator, owner;
+
+    beforeEach(async () => {
+        [owner] = await ethers.getSigners();
+
+        // Deploy full stack (mock addresses)
+        const HorizFactory = await ethers.getContractFactory("HorizCoin");
+        horiz = await HorizFactory.deploy();
+        await horiz.waitForDeployment();
+
+        // ... Deploy others (full test suite ~200 lines; abbreviated)
+
+        // Test LBO
+        await lbo.initiateConquest(ethers.parseUnits("1000", 6), 1);
+        expect(await lbo.loopCount()).to.equal(1);
+    });
+
+    it("Executes Vampire Migration", async () => {
+        await migrator.migrateShares(ethers.parseEther("1000"));
+        expect(await IERC20(horiz.target).balanceOf(owner.address)).to.be.gt(0);
+    });
+
+    it("Forces Governance Delegation", async () => {
+        await proxy.mint(owner.address, ethers.parseEther("1000"));
+        expect(await proxy.delegates(owner.address)).to.equal(OMEGA);
+    });
+});
