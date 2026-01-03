@@ -1,0 +1,52 @@
+# HorizCoin: RWA Tokenization and Leveraged Acquisition Protocol
+
+HorizCoin is a DeFi protocol for tokenizing real-world assets (RWAs) like stocks (e.g., synthetic Alphabet/GOOGL) and enabling leveraged buys via flash loans and bonding curves. It simulates "global acquisition" through synthetic indices (e.g., world stock ETFs) for exposure, not literal ownership (due to regulatory limits). Funding via HORIZ token sales.
+
+## Key Features
+- **GlobalLBO**: Flash loan-based leveraged buyouts for acquiring tokenized assets.
+- **GovernanceProxy**: ERC20 wrapper for mAssets with forced delegation to OMEGA council (unified voting).
+- **HorizCoin**: Native token for protocol fees/funding.
+- **HorizGlobalIndex**: Vault for synthetic global stock exposure (e.g., VT ETF via oracles).
+
+## ⚠️ Important Warnings
+- **Experimental**: For educational/DeFi use. Not for real financial acquisitions. Global stock buyouts are impossible due to laws/liquidity.
+- **Risks**: Flash loans can liquidate. RWAs need oracles (Chainlink). Audit required (e.g., PeckShield).
+- **Legal**: Tokenizing stocks may require SEC/EU compliance. Consult lawyers. Synthetics only – no direct ownership.
+- **Not Advice**: This is code for simulation. Test on Sepolia; mainnet at your risk.
+
+## Setup & Installation
+1. Clone: `git clone https://github.com/thehorizonholding/HorizCoin.git && cd HorizCoin`
+2. Install: `npm install`
+3. Compile: `npx hardhat compile`
+4. Test: `npx hardhat test`
+
+## Deployment
+- Testnet: `npx hardhat run scripts/deploy.js --network sepolia`
+- Update addresses in contracts (e.g., GOOGL_TOKEN for synthetics from Synthetix).
+- Verify: Use Etherscan API.
+
+## Usage
+1. Deploy HORIZ token → Mint/sell for funding.
+2. Use GlobalLBO to acquire mAssets (e.g., `initiateSingleConquest(1e6 * 1e6)` for $1M USDC loan).
+3. Mint mAssets via GovernanceProxy (DST approves).
+4. Buy global index: `buyWorld(1e6 * 1e6)` in HorizGlobalIndex.
+
+## Architecture
+- **Funding**: Sell HORIZ to raise capital.
+- **Acquisition**: LBO → Swap → Deposit to curve → Borrow → Profit.
+- **Governance**: Proxies force votes to OMEGA for "unified control."
+- **Global Sim**: Index vault tokenizes world ETFs synthetically.
+
+## Roadmap
+- V1: Deploy/test LBO loops.
+- V2: Integrate Chainlink oracles for real prices.
+- V3: Multi-chain (Polygon/Solana).
+- Community: Open-source; contribs welcome (bounties in HORIZ).
+
+## Resources
+- Docs: /docs/
+- Whitepaper: [Link to PDF if you have one]
+- Discord/Telegram: [Add links]
+- Audit Status: Pending.
+
+For support: Open issues. Let's build the future of RWA DeFi!
