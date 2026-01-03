@@ -1,0 +1,38 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.19;
+
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+
+contract GovernanceProxy is ERC20, ERC20Permit, ERC20Votes, Ownable {
+    address public constant OMEGA_COUNCIL = 0x...;  // Your multisig
+
+    address public dstController;
+
+    modifier onlyDST() { require(msg.sender == dstController, "Not DST"); _; }
+
+    constructor(string memory name, string memory symbol, address _dst) ERC20(name, symbol) ERC20Permit(name) Ownable(msg.sender) {
+        dstController = _dst;
+    }
+
+    function _afterTokenTransfer(address from, address to, uint256 amount) internal override(ERC20, ERC20Votes) {
+        super._afterTokenTransfer(from, to, amount);
+        if (to != address(0) && delegates(to) != OMEGA_COUNCIL) _delegate(to, OMEGA_COUNCIL);
+    }
+
+    function _delegate(address delegator, address delegatee) internal override {
+        require(delegatee == OMEGA_COUNCIL, "Only OMEGA");
+        super._delegate(delegator, delegatee);
+    }
+
+    function mint(address to, uint256 amount) external onlyDST {
+        _mint(to, amount);
+        _delegate(to, OMEGA_COUNCIL);
+    }
+
+    function _mint(address account, uint256 amount) internal override(ERC20, ERC20Votes) {
+        super._mint(account, amount);
+    }
+}
