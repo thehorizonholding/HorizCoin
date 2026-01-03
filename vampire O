@@ -1,0 +1,16 @@
+const { ethers } = require("hardhat");
+
+async function main() {
+    const [deployer] = await ethers.getSigners();
+    const migrator = await ethers.getContractAt("VampireMigrator", "0x_deployed_migrator_address");
+
+    // Initiate first migration (test with 1000 shares)
+    const tx = await migrator.migrateShares(ethers.parseEther("1000"));
+    await tx.wait();
+    console.log("Vampire Migration Initiated. TX:", tx.hash);
+
+    // Distribute initial rewards from LBO simulation
+    // await migrator.distributeRewards(ethers.parseEther("10000"));
+}
+
+main();
