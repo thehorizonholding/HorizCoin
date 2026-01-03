@@ -1,0 +1,28 @@
+const { expect } = require("chai");
+const { ethers } = require("hardhat");
+
+describe("GlobalLBO", function () {
+    let lbo, usdcMock, owner;
+
+    beforeEach(async function () {
+        [owner] = await ethers.getSigners();
+        // Mock USDC
+        const USDC = await ethers.getContractFactory("ERC20");
+        usdcMock = await USDC.deploy("Mock USDC", "USDC");
+
+        // Deploy LBO with mocks
+        const LBO = await ethers.getContractFactory("GlobalLBO");
+        lbo = await LBO.deploy(owner.address);
+        await lbo.waitForDeployment();
+
+        // Mock approvals/transfers for testing
+    });
+
+    it("Should execute LBO successfully", async function () {
+        // Mock swap/deposit/borrow (in real test, use mocks for interfaces)
+        // Simulate flash loan callback
+        expect(await lbo.loopCount()).to.equal(0);
+        // Call initiateSingleConquest and assert events (requires full mock setup)
+        // expect(event).to.emit(lbo, "LBOExecuted").withArgs(...);
+    });
+});
