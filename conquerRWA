@@ -1,0 +1,7 @@
+while True:
+    prices = get_rwa_prices(['GOOGLx', 'TSMx', 'NVDAx'])
+    best_rwa = argmax(yield + growth_potential)
+    if horiz_balance > threshold:
+        tx = treasury.conquerRWA(amount, best_rwa, min_out)
+        execute(tx)
+    sleep(3600)  # Hourly rebalance
