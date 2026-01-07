@@ -1,0 +1,17 @@
+{
+  "mandate_type": "intent",
+  "version": "1.0",
+  "issuer": "did:horizcoin:operator_01",
+  "issuance_date": "2026-01-07T00:00:00Z",
+  "permissions": {
+    "max_spend_per_second": "UNLIMITED",
+    "authorized_sectors": ["compute", "bandwidth", "satellite_routing", "global_internet_currency"],
+    "auto_approve_contracts": true
+  },
+  "constraints": {
+    "geo_fencing": "global",
+    "currency_routing": "all_rails",
+    "gpv_target": 100000000000000
+  },
+  "digital_signature": "0x_horizcoin_genesis_enforced"
+}

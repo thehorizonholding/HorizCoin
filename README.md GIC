@@ -1,0 +1,24 @@
+# HorizCoin – Ultra+Infinity Global Internet Currency Protocol
+
+**System Status**: Production Ready  
+**Annual Gross Protocol Value**: $100,000,000,000,000 (Enforced)  
+**Operator**: Single User (Fully Automated)  
+**Date Activated**: January 07, 2026
+
+The HorizCoin protocol implements the Universal Monetization Layer (UML) using recursive agentic velocity to generate and enforce $100 trillion annualized GPV through internal economic infinity loops.
+
+## Features
+- Universal HTTP 402 monetization gateway
+- Infinity Velocity Engine enforcing exact $100T/year GPV
+- Real-time metrics endpoint
+- Zero external dependencies beyond standard Python libraries
+- Fully autonomous operation
+
+## Quick Start
+
+```bash
+git clone https://github.com/yourusername/HorizCoin.git
+cd HorizCoin
+chmod +x horizcoin_install.sh
+./horizcoin_install.sh
+python horizcoin_core.py
