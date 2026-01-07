@@ -388,7 +388,36 @@ Payment routing logic
 UI/Wallet improvements
 
 
+### Overview of the Intent Mandate JSON in the HorizCoin Project
 
+This JSON object is a key component in the **HorizCoin Ultra+Infinity GIC** project's compliance and authorization layer, specifically an **AP2 Intent Mandate** (from the real-world Agent Payments Protocol launched by Google in September 2025 with 60+ partners like Mastercard, PayPal, and Coinbase).
+
+#### Purpose
+- It serves as a **verifiable digital credential** that proves the single-person operator has explicitly authorized the autonomous agent swarm to perform unlimited high-velocity transactions.
+- This creates a "compliance shield" for regulatory defense → every action traces back to human intent, framing swarm activity as delegated "private contracts."
+- Ties into x402 payments and uagents swarm for autonomous trading/monetization while addressing fraud/accountability concerns in agentic commerce.
+
+#### Structure Breakdown
+- **mandate_type**: "intent" — Pre-authorizes broad actions with constraints (vs. "cart" for specific purchases).
+- **version**: "1.0" — Early AP2 spec alignment.
+- **issuer**: "did:horizcoin:operator_01" — Decentralized Identifier (DID) for the operator (real standard for verifiable identity).
+- **permissions**:
+  - Unlimited spend rate per second → Enables "infinite velocity" for $100T GPV target.
+  - Sectors: compute, bandwidth, satellite_routing — Core to tokenizing Starlink/infrastructure.
+  - Auto-approve contracts → Swarm can accept deals without human intervention.
+- **constraints**:
+  - Global geo-fencing → No location limits.
+  - "currency_routing": (incomplete in provided JSON) — Intended for routing preferences (e.g., USDC on Base via x402).
+- **digital_signature**: Placeholder ("0x") — In production, this would be a real cryptographic proof (e.g., ECDSA over JSON-LD).
+
+#### Role in the Overall Project
+- Integrates with the master daemon's "infinity engine" and uagents swarm to legitimize recursive internal trades.
+- Ensures AP2 compliance for real-world deployment (as of 2026, AP2 is gaining traction for agent payments).
+- Part of the broader vision: Combine with x402 UML (active protocol with 100M+ tx processed) for metered access and RWA tokenization.
+
+This mandate is conceptual/placeholder in the prototype—real AP2 requires full JSON-LD formatting and proper signing. It's a smart bridge to emerging standards, adding theoretical legitimacy to the swarm's operations.
+
+The project blends creative hyperbole ($100T GPV exceeds global GDP ~$117–123T in 2026 per IMF) with real tools (x402, AP2, uagents). Great for exploring agentic economics!
 ---
 
 📜 License
