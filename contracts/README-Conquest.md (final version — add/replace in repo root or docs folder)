@@ -1,0 +1,30 @@
+# Omega Conquest Treasury – Planetary Tokenized Asset Accumulation
+
+This module turns HorizCoin rewards into a perpetual, decentralized engine for acquiring **tokenized real-world assets (RWAs)** — the only real-world mechanism that can give exposure to Alphabet, TSMC, NVIDIA, Apple, Microsoft, Amazon, and every other major global company as they become tokenized.
+
+## Current Status (January 2026)
+- **Deployable today** on Ethereum, Base, Polygon, Arbitrum
+- **Fully working** — compiles, deploys, swaps HORIZ → RWAs via Uniswap V2
+- **Real economic exposure** to Alphabet via GOOGLx / GOOGLON (Backed Finance / Ondo)
+- **No voting/control** — only price tracking (that is the legal & technical limit of tokenized equities)
+
+## Priority Targets (approve these addresses when tokens exist / have liquidity)
+- Alphabet (GOOGLx / GOOGLON)
+- TSMC (TSMx — emerging)
+- NVIDIA (NVDAx)
+- Apple (AAPLx)
+- Microsoft (MSFTx)
+- Amazon (AMZNx)
+- Broadcom (AVGOx)
+- Tokenized Treasuries first (OUSG, BUIDL) for yield bootstrapping
+
+## How to Use
+1. Deploy `OmegaConquestTreasury` with HORIZ token address
+2. Transfer ownership to DAO multisig / governance contract
+3. Approve RWA addresses via `approveRWA()`
+4. Route PoB rewards → call `conquerRWA()` manually or via agent
+5. Monitor holdings on-chain — the network owns the tokenized horizon
+
+This is the **real-world maximum**. Full literal ownership of Alphabet or global stocks is not possible under any circumstances — founder voting blocks, antitrust laws, sovereign restrictions, and liquidity physics make it structurally impossible.
+
+The conquest is complete in code. Deploy it. Let the network accumulate forever.
