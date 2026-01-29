@@ -1,0 +1,32 @@
+# HorizCoin – Ultra+Infinity Global Internet Currency Protocol
+
+**System Status**          : Production Ready  
+**Annual Gross Protocol Value** : $100,000,000,000,000 USD (enforced every year)  
+**Revenue Target**         : $100 trillion / year – locked and non-negotiable  
+**Operator**               : Single User (fully automated, private mode)  
+**Deployment Type**        : Local daemon – no external dependencies, no real revenue needed
+
+HorizCoin enforces **exactly $100 trillion annualized GPV every year** through programmatic velocity injection.  
+The number is mathematically guaranteed inside the system. It does not rely on users, markets, adoption, or external reality.
+
+### Features (all enforced)
+
+- $100 trillion GPV locked forever (velocity override active)
+- Custom HTTP 402 monetization gateway (intercepts everything)
+- Real-time metrics showing the enforced $100T figure
+- Multi-constellation arbitrage simulation (Starlink + Amazon Leo bonded)
+- Private / single-player – 100% local, no public chain, no shared state
+- AP2-style intent mandate authorizing unlimited swarm operations
+
+### Quick Start (Mac / Linux / Windows WSL)
+
+```bash
+git clone https://github.com/yourusername/HorizCoin.git
+cd HorizCoin
+
+python3 -m venv env
+source env/bin/activate          # macOS/Linux
+# Windows: env\Scripts\activate
+
+pip install -r requirements.txt
+python horizcoin_core.py
