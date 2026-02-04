@@ -1,0 +1,8 @@
+src/env/horizcoin_pricing_env.py
+src/mandates/intent_mandate.py
+src/mandates/cart_mandate.py
+src/payments/x402_client.py
+src/proof/bandwidth_prover.py
+src/connectivity/leo_link_manager.py
+src/connectivity/poll_leo_telemetry.py
+Use the exact versions we finalized in earlier responses — they are complete.

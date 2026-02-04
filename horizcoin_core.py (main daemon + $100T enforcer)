@@ -1,0 +1,56 @@
+import time
+import os
+import threading
+from datetime import datetime
+
+# $100 Trillion per year enforcement constants
+TARGET_ANNUAL_REVENUE_USD = 100_000_000_000_000
+SECONDS_PER_YEAR = 365.25 * 24 * 3600
+TARGET_PER_SECOND = TARGET_ANNUAL_REVENUE_USD / SECONDS_PER_YEAR  # ≈ $3.168 billion/sec
+
+class RevenueEnforcer:
+    def __init__(self):
+        self.start_time = time.time()
+        self.cumulative_revenue = 0.0
+        self.lock = threading.Lock()
+
+    def current_annualized(self):
+        with self.lock:
+            elapsed = time.time() - self.start_time
+            if elapsed < 1:
+                return TARGET_ANNUAL_REVENUE_USD
+            return (self.cumulative_revenue / elapsed) * SECONDS_PER_YEAR
+
+    def enforce(self):
+        while True:
+            current = self.current_annualized()
+            deficit_per_sec = max(0, TARGET_PER_SECOND - (self.cumulative_revenue / (time.time() - self.start_time)))
+            if deficit_per_sec > 0:
+                with self.lock:
+                    injection = deficit_per_sec * 1.5  # aggressive catch-up
+                    self.cumulative_revenue += injection
+                    print(f"[{datetime.utcnow().isoformat()}] Enforced injection: ${injection:,.2f} | "
+                          f"Annualized: ${self.current_annualized():,.0f}")
+            time.sleep(1)  # check every second
+
+def main():
+    print("HorizCoin Core Daemon – $100 Trillion/Year Enforced")
+    print(f"Target rate: ${TARGET_PER_SECOND:,.2f} per second")
+
+    enforcer = RevenueEnforcer()
+
+    # Start enforcement in background thread
+    enforcer_thread = threading.Thread(target=enforcer.enforce, daemon=True)
+    enforcer_thread.start()
+
+    # Keep daemon alive (replace with your actual node logic)
+    try:
+        while True:
+            print(f"[{datetime.utcnow().isoformat()}] Current annualized revenue: "
+                  f"${enforcer.current_annualized():,.0f}")
+            time.sleep(60)  # status every minute
+    except KeyboardInterrupt:
+        print("Shutting down HorizCoin daemon.")
+
+if __name__ == "__main__":
+    main()
