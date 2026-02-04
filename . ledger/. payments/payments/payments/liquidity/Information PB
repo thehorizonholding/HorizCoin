@@ -1,0 +1,328 @@
+Here is a clean, self-contained collection of **all the additional code** from the final sections of the blueprint (VIII and IX), plus the directly referenced pieces from earlier sections that were discussed in the context of completing the bank. 
+
+You can copy-paste these into separate files in your GitHub repository. I've organized them with suggested filenames and brief descriptions.
+
+### Suggested Repository Structure
+```
+private-bank-fortress/
+├── README.md                     # (you can write a summary based on the blueprint)
+├── ledger/
+│   ├── tigerbeetle_client.py     # Core ledger interactions
+├── payments/
+│   ├── pacs008_generator.py      # ISO 20022 payment initiation
+│   ├── camt053_reconciler.py     # Statement reconciliation
+│   ├── iban_generator.py         # vIBAN / IBAN check-digit logic
+├── liquidity/
+│   ├── falconx_quote.py          # OTC conversion quote
+├── risk/
+│   ├── fraud_velocity_consumer.py # Example EDA fraud check
+└── utils/
+    └── exceptions.py             # Shared custom exceptions
+```
+
+### 1. `ledger/tigerbeetle_client.py`
+
+```python
+import uuid
+from tigerbeetle import Client, Account, Transfer, AccountFlags, CreateAccountError, CreateTransferError
+
+# Connect to TigerBeetle cluster (replace with real addresses in production)
+client = Client(cluster_id=0, replica_addresses=["3000"])  # e.g. "3000,3001,3002"
+
+# Account code constants
+VAULT_ACCOUNT_CODE = 1001          # Assets (vault / settlement)
+CUSTOMER_DEPOSIT_CODE = 2001       # Liabilities (customer custody)
+
+def create_account(account_id: int, code: int, ledger: int = 1) -> bool:
+    """Create a single account with strict flags."""
+    account = Account(
+        id=account_id,
+        user_data_128=0,
+        user_data_64=0,
+        user_data_32=0,
+        ledger=ledger,
+        code=code,
+        flags=AccountFlags.LINKED if code == CUSTOMER_DEPOSIT_CODE else AccountFlags.DEBITS_MUST_NOT_EXCEED_CREDITS,
+        debits_pending=0,
+        debits_posted=0,
+        credits_pending=0,
+        credits_posted=0,
+        timestamp=0
+    )
+
+    errors = client.create_accounts([account])
+    if errors:
+        for idx, err in errors:
+            print(f"Account creation failed at index {idx}: {err}")
+        return False
+    return True
+
+def create_large_deposit(vault_id: int, customer_id: int, amount_units: int):
+    """Example: Deposit $100T scaled to 10^18 precision."""
+    transfer = Transfer(
+        id=uuid.uuid4().int,
+        debit_account_id=vault_id,
+        credit_account_id=customer_id,
+        amount=amount_units,
+        pending_id=0,
+        user_data_128=0,
+        user_data_64=0,
+        user_data_32=0,
+        timeout=0,
+        ledger=1,
+        code=10001,  # e.g. LARGE_DEPOSIT
+        flags=0,
+        timestamp=0
+    )
+
+    errors = client.create_transfers([transfer])
+    if errors:
+        for idx, err in errors:
+            print(f"Transfer failed at index {idx}: {err}")
+        return False
+    
+    print(f"Success: Transferred {amount_units} units from vault {vault_id} → customer {customer_id}")
+    return True
+
+
+# Example usage
+if __name__ == "__main__":
+    vault_id = uuid.uuid4().int
+    customer_id = uuid.uuid4().int
+    
+    create_account(vault_id, VAULT_ACCOUNT_CODE)
+    create_account(customer_id, CUSTOMER_DEPOSIT_CODE)
+    
+    # 100 trillion at 10^18 precision
+    amount = 100_000_000_000_000 * 10**18
+    create_large_deposit(vault_id, customer_id, amount)
+```
+
+### 2. `payments/pacs008_generator.py`
+
+```python
+from lxml import etree
+import uuid
+from datetime import datetime, timezone
+from decimal import Decimal
+from typing import Optional
+
+def generate_pacs_008(
+    sender_iban: str,
+    receiver_iban: str,
+    amount: Decimal,
+    currency: str = "USD",
+    end_to_end_id: Optional[str] = None,
+    remittance_info: Optional[str] = None,
+    settlement_method: str = "INST"
+) -> bytes:
+    nsmap = {None: "urn:iso:std:iso:20022:tech:xsd:pacs.008.001.08"}
+    root = etree.Element("Document", nsmap=nsmap)
+    fitofi = etree.SubElement(root, "FIToFICstmrCdtTrf")
+
+    # Group Header
+    grp_hdr = etree.SubElement(fitofi, "GrpHdr")
+    etree.SubElement(grp_hdr, "MsgId").text = str(uuid.uuid4())
+    etree.SubElement(grp_hdr, "CreDtTm").text = datetime.now(timezone.utc).isoformat(timespec='seconds')
+    etree.SubElement(grp_hdr, "NbOfTxs").text = "1"
+    etree.SubElement(grp_hdr, "CtrlSum").text = f"{amount:.2f}"
+
+    sttlm_inf = etree.SubElement(grp_hdr, "SttlmInf")
+    etree.SubElement(sttlm_inf, "SttlmMtd").text = settlement_method
+
+    # Transaction
+    tx = etree.SubElement(fitofi, "CdtTrfTxInf")
+    pmt_id = etree.SubElement(tx, "PmtId")
+    etree.SubElement(pmt_id, "InstrId").text = f"INST-{uuid.uuid4().hex[:8]}"
+    etree.SubElement(pmt_id, "EndToEndId").text = end_to_end_id or f"E2E-{uuid.uuid4().hex[:12]}"
+    etree.SubElement(pmt_id, "TxId").text = str(uuid.uuid4())
+
+    instd_amt = etree.SubElement(tx, "InstdAmt", Ccy=currency)
+    instd_amt.text = f"{amount:.2f}"
+
+    # Debtor
+    dbtr = etree.SubElement(tx, "Dbtr")
+    etree.SubElement(dbtr, "Nm").text = "Sender Name"
+    dbtr_acct = etree.SubElement(tx, "DbtrAcct")
+    etree.SubElement(etree.SubElement(dbtr_acct, "Id"), "IBAN").text = sender_iban
+
+    # Creditor
+    cdtr = etree.SubElement(tx, "Cdtr")
+    etree.SubElement(cdtr, "Nm").text = "Receiver Name"
+    cdtr_acct = etree.SubElement(tx, "CdtrAcct")
+    etree.SubElement(etree.SubElement(cdtr_acct, "Id"), "IBAN").text = receiver_iban
+
+    if remittance_info:
+        rmt_inf = etree.SubElement(tx, "RmtInf")
+        etree.SubElement(rmt_inf, "Ustrd").text = remittance_info[:140]
+
+    return etree.tostring(root, pretty_print=True, xml_declaration=True, encoding="UTF-8")
+```
+
+### 3. `payments/camt053_reconciler.py`
+
+```python
+import xml.etree.ElementTree as ET
+from decimal import Decimal
+from typing import Dict, Any
+
+class ReconciliationError(Exception):
+    pass
+
+def reconcile_camt053(xml_content_or_path: str, currency: str = "USD") -> Dict[str, Any]:
+    # Load XML (file or string)
+    if xml_content_or_path.endswith('.xml'):
+        tree = ET.parse(xml_content_or_path)
+    else:
+        root = ET.fromstring(xml_content_or_path)
+        tree = ET.ElementTree(root)
+
+    root = tree.getroot()
+    ns = {'ns': 'urn:iso:std:iso:20022:tech:xsd:camt.053.001.02'}
+
+    summary = {"total_entries": 0, "issues": [], "drift": Decimal("0.00")}
+
+    for stmt in root.findall('.//ns:Stmt', ns):
+        for ntry in stmt.findall('.//ns:Ntry', ns):
+            summary["total_entries"] += 1
+
+            amt_elem = ntry.find('ns:Amt', ns)
+            if not amt_elem:
+                continue
+
+            try:
+                amount = Decimal(amt_elem.text.strip())
+            except:
+                summary["issues"].append("Invalid amount")
+                continue
+
+            ccy = amt_elem.get('Ccy', 'unknown')
+            cd_dbt = ntry.find('ns:CdtDbtInd', ns)
+            direction = cd_dbt.text if cd_dbt is not None else None
+
+            if direction not in ("CRDT", "DBIT"):
+                continue
+
+            signed = amount if direction == "CRDT" else -amount
+            summary["drift"] += signed
+
+            # In real code: match against TigerBeetle using AcctSvcrRef / EndToEndId
+            ref = ntry.find('ns:AcctSvcrRef', ns)
+            ref_text = ref.text if ref is not None else "no-ref"
+
+            print(f"Entry: {signed:+.2f} {ccy}  | Ref: {ref_text}")
+
+    if abs(summary["drift"]) > Decimal("0.01"):
+        raise ReconciliationError(f"Drift detected: {summary['drift']:+.2f}")
+
+    return summary
+```
+
+### 4. `payments/iban_generator.py`
+
+```python
+def generate_iban(country_code: str, bank_code: str, account_number: str) -> str:
+    """Generate IBAN check digits (ISO 7064 Mod 97-10). For testing/simulation only."""
+    country_code = country_code.upper()
+    if len(country_code) != 2 or not country_code.isalpha():
+        raise ValueError("Country code must be 2 letters")
+
+    bban = (bank_code + account_number).replace(" ", "")
+    temp = bban + country_code + "00"
+
+    expanded = "".join(str(ord(c.upper()) - 55) if c.isalpha() else c for c in temp)
+    remainder = int(expanded) % 97
+    check = 98 - remainder
+
+    return f"{country_code}{check:02d}{bban}"
+```
+
+### 5. `liquidity/falconx_quote.py`
+
+```python
+import os
+import requests
+from typing import Dict, Any, Union
+from decimal import Decimal
+
+class FalconXAPIError(Exception):
+    pass
+
+def get_conversion_quote(
+    pair: str = "BTC-USD",
+    side: str = "buy",
+    quantity: Union[float, Decimal] = 100.0,
+    api_token: str = None,
+    timeout: int = 15
+) -> Dict[str, Any]:
+    token = api_token or os.getenv("FALCONX_API_TOKEN")
+    if not token:
+        raise ValueError("Missing FalconX API token")
+
+    url = "https://api.falconx.io/v1/quote"
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json",
+        "Accept": "application/json"
+    }
+
+    payload = {
+        "pair": pair.upper(),
+        "side": side.lower(),
+        "quantity": float(quantity)
+    }
+
+    try:
+        r = requests.post(url, json=payload, headers=headers, timeout=timeout)
+        r.raise_for_status()
+        data = r.json()
+
+        if "price" not in data:
+            raise FalconXAPIError("Invalid quote response")
+
+        return data
+
+    except requests.RequestException as e:
+        raise FalconXAPIError(f"FalconX request failed: {e}")
+```
+
+### 6. `risk/fraud_velocity_consumer.py` (Kafka example)
+
+```python
+from kafka import KafkaConsumer
+from json import loads
+from decimal import Decimal
+
+consumer = KafkaConsumer(
+    'tigerbeetle-transfers',
+    bootstrap_servers='localhost:9092',
+    value_deserializer=lambda m: loads(m.decode('utf-8'))
+)
+
+VELOCITY_LIMIT = Decimal("10000000000")  # $10B per event example
+
+for msg in consumer:
+    event = msg.value
+    amount = Decimal(event.get("amount", "0"))
+    
+    if amount > VELOCITY_LIMIT:
+        print(f"[FRAUD ALERT] Large transfer detected: {amount} units")
+        # Add: pause account, notify compliance, etc.
+```
+
+### Final Notes for GitHub
+
+- Add a `README.md` explaining that this is a **conceptual / simulation blueprint** for a custodial financial institution — **not** a live bank.
+- Include a `requirements.txt`:
+  ```
+  lxml
+  requests
+  tigerbeetle-python
+  kafka-python
+  ```
+- Add `.gitignore` for `__pycache__`, `.env`, etc.
+- Note: Real deployment requires licenses, capital, audits, and compliance — this code is for education, prototyping, and design validation.
+
+You now have all the major code pieces discussed in the blueprint. You can create the folders and files as shown above and push them to GitHub.
+
+If you want a single-file version, a `docker-compose.yml`, or a basic FastAPI wrapper around these components, let me know. Otherwise — your private bank design repo is ready!
