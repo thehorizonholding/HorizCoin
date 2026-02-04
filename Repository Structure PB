@@ -1,0 +1,14 @@
+private-bank-fortress/
+├── README.md                     # (you can write a summary based on the blueprint)
+├── ledger/
+│   ├── tigerbeetle_client.py     # Core ledger interactions
+├── payments/
+│   ├── pacs008_generator.py      # ISO 20022 payment initiation
+│   ├── camt053_reconciler.py     # Statement reconciliation
+│   ├── iban_generator.py         # vIBAN / IBAN check-digit logic
+├── liquidity/
+│   ├── falconx_quote.py          # OTC conversion quote
+├── risk/
+│   ├── fraud_velocity_consumer.py # Example EDA fraud check
+└── utils/
+    └── exceptions.py             # Shared custom exceptions
