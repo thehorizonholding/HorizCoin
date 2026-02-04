@@ -1,0 +1,24 @@
+HorizCoin/
+├── README.md
+├── LICENSE
+├── horizcoin_setup.sh
+├── horizcoin_core.py
+├── contracts/
+│   └── HorizcoinSettlement.sol
+├── src/
+│   ├── env/
+│   │   └── horizcoin_pricing_env.py
+│   ├── mandates/
+│   │   ├── intent_mandate.py
+│   │   └── cart_mandate.py
+│   ├── payments/
+│   │   └── x402_client.py
+│   ├── proof/
+│   │   └── bandwidth_prover.py
+│   ├── connectivity/
+│   │   ├── leo_link_manager.py
+│   │   └── poll_leo_telemetry.py
+└── docs/
+    ├── FINAL_REPORT.md
+    ├── REVENUE_100_TRILLION.md
+    └── FINAL_STATUS.md
