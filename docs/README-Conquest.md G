@@ -1,0 +1,32 @@
+# Omega Conquest Treasury – Planetary Tokenized Asset Accumulation
+
+This is the **real, working** core of the project — a decentralized treasury that accumulates **tokenized RWAs** using HORIZ rewards.
+
+## Real-world capabilities (deployable today)
+- Swaps HORIZ for any approved ERC-20 RWA token  
+- Economic price exposure to Alphabet (GOOGLx/GOOGLON), HSBC (if tokenized), TSMC, NVIDIA, Apple, Microsoft, Amazon, Broadcom, etc.  
+- Runs on Ethereum, Base, Polygon, Arbitrum, etc. with real Uniswap liquidity  
+- Secure, gas-efficient, Ownable + ReentrancyGuard  
+
+## What it does NOT do (non-negotiable boundaries)
+- Grant voting rights, board control, or literal ownership  
+- Acquire private Class B shares or bypass founder voting power  
+- Enable full ownership of Alphabet, HSBC, or global stocks (structurally impossible)  
+
+## Priority Targets (approve these when tokenized & liquid)
+- Alphabet (GOOGLx / GOOGLON)  
+- HSBC (HSBCx – pending tokenization)  
+- TSMC (TSMx)  
+- NVIDIA (NVDAx)  
+- Apple (AAPLx)  
+- Microsoft (MSFTx)  
+- Amazon (AMZNx)  
+- Broadcom (AVGOx)  
+- Treasuries first (OUSG, BUIDL) for yield bootstrapping  
+
+## Deployment & Usage
+1. Deploy: `npx hardhat run scripts/deploy_omega_treasury.js --network mainnet`  
+2. Approve RWAs: `approveRWA(0x...GOOGLx)`  
+3. Conquer: `conquerRWA(amountHORIZ, targetRWA, minOut)`  
+
+The tokenized mirror is the only real conquest possible. Deploy and accumulate.
