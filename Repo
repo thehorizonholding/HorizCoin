@@ -1,0 +1,13 @@
+docs/
+  OMNIBUS_Framework.md           ← New speculative strategy document
+
+contracts/
+  OmegaConquestTreasury.sol      ← Already complete (real working code)
+
+scripts/
+  deploy_omega_treasury.js       ← Already complete
+
+test/
+  OmegaConquestTreasury.test.js  ← Already complete
+
+README-Conquest.md               ← Updated version (append or replace)
