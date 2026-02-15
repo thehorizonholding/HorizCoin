@@ -1,0 +1,17 @@
+HorizCoin/
+├── README.md
+├── LICENSE
+├── horizcoin_setup.sh
+├── horizcoin_core.py
+├── contracts/
+│   ├── HorizcoinSettlement.sol
+│   └── DeployHorizcoin.s.sol
+├── src/
+│   ├── pob_node.py
+│   ├── server.py
+│   └── autonomous_agent.ts
+├── node/
+│   └── pob_node.py  (symlink or copy)
+└── docs/
+    ├── REVENUE_100_TRILLION.md
+    └── FINAL_STATUS.md
