@@ -1,0 +1,2 @@
+cd contracts
+forge script DeployHorizcoin --rpc-url https://sepolia.base.org --broadcast
