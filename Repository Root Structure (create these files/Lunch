@@ -1,0 +1,3 @@
+python horizcoin_core.py --enforce-target --simulation
+# For testnet/mainnet:
+# python horizcoin_core.py --enforce-target --rpc-url https://sepolia.base.org
