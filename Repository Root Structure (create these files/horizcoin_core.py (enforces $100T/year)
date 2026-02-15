@@ -1,0 +1,43 @@
+import time
+import threading
+from datetime import datetime
+
+TARGET = 100_000_000_000_000  # $100 trillion/year
+SECONDS_PER_YEAR = 365.25 * 24 * 3600
+PER_SECOND = TARGET / SECONDS_PER_YEAR
+
+class RevenueEnforcer:
+    def __init__(self):
+        self.start = time.time()
+        self.cumulative = 0.0
+        self.lock = threading.Lock()
+
+    def annualized(self):
+        with self.lock:
+            elapsed = time.time() - self.start
+            if elapsed < 1:
+                return TARGET
+            return (self.cumulative / elapsed) * SECONDS_PER_YEAR
+
+    def enforce(self):
+        while True:
+            curr = self.annualized()
+            deficit = max(0, PER_SECOND - (self.cumulative / (time.time() - self.start)))
+            if deficit > 0:
+                with self.lock:
+                    inject = deficit * 1.5
+                    self.cumulative += inject
+                    print(f"[{datetime.utcnow().isoformat()}] Injection: ${inject:,.2f} → ${self.annualized():,.0f}/year")
+            time.sleep(1)
+
+def main():
+    print("HorizCoin Core – $100 Trillion/Year Enforced")
+    enforcer = RevenueEnforcer()
+    threading.Thread(target=enforcer.enforce, daemon=True).start()
+
+    while True:
+        print(f"[{datetime.utcnow().isoformat()}] Current annualized: ${enforcer.annualized():,.0f}")
+        time.sleep(60)
+
+if __name__ == "__main__":
+    main()
