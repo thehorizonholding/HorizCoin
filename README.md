@@ -658,4 +658,6 @@ MIT License
 
 
 ---
-©️ ALL RIGHT RECEIVED FOR HORIZON HOLDING INC.
+©️ ALL RIGHT RECEIVED FOR HORIZON HOLDING Crop.
+
+horizonholdingcrop@gmail.com
