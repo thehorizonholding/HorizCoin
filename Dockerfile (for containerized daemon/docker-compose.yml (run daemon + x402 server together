@@ -1,0 +1,24 @@
+version: '3.8'
+
+services:
+  daemon:
+    build: .
+    command: python horizcoin_core.py --enforce-target
+    ports:
+      - "9090:9090"  # metrics endpoint
+    environment:
+      - ENFORCE_100T=true
+    volumes:
+      - .:/app
+
+  x402-server:
+    build: .
+    command: python server.py
+    ports:
+      - "8000:8000"
+    environment:
+      - HORIZCOIN_TREASURY=0xYourTreasuryAddressHere
+    volumes:
+      - .:/app
+    depends_on:
+      - daemon
