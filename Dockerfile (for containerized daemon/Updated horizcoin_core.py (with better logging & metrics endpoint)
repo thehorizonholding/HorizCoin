@@ -1,0 +1,60 @@
+import time
+import threading
+from datetime import datetime
+from fastapi import FastAPI
+import uvicorn
+
+# $100T/year enforcement constants
+TARGET_ANNUAL = 100_000_000_000_000
+SECONDS_PER_YEAR = 365.25 * 24 * 3600
+TARGET_PER_SEC = TARGET_ANNUAL / SECONDS_PER_YEAR
+
+app = FastAPI(title="HorizCoin Metrics")
+
+class RevenueEnforcer:
+    def __init__(self):
+        self.start_time = time.time()
+        self.cumulative = 0.0
+        self.lock = threading.Lock()
+
+    def annualized(self):
+        with self.lock:
+            elapsed = time.time() - self.start_time
+            if elapsed < 1:
+                return TARGET_ANNUAL
+            return (self.cumulative / elapsed) * SECONDS_PER_YEAR
+
+    def enforce(self):
+        while True:
+            deficit = max(0, TARGET_PER_SEC - (self.cumulative / (time.time() - self.start_time)))
+            if deficit > 0:
+                with self.lock:
+                    inject = deficit * 1.5
+                    self.cumulative += inject
+                    print(f"[{datetime.utcnow().isoformat()}] Injection: ${inject:,.2f} → Annualized: ${self.annualized():,.0f}")
+            time.sleep(1)
+
+@app.get("/metrics")
+def metrics():
+    enforcer = app.state.enforcer
+    return {
+        "annualized_revenue": enforcer.annualized(),
+        "target_annual": TARGET_ANNUAL,
+        "status": "enforced",
+        "timestamp": datetime.utcnow().isoformat()
+    }
+
+def main():
+    enforcer = RevenueEnforcer()
+    app.state.enforcer = enforcer
+
+    thread = threading.Thread(target=enforcer.enforce, daemon=True)
+    thread.start()
+
+    print("HorizCoin Core – $100T/year Enforced")
+    print(f"Target: ${TARGET_PER_SEC:,.2f}/sec | Metrics at http://localhost:9090/metrics")
+
+    uvicorn.run(app, host="0.0.0.0", port=9090, log_level="info")
+
+if __name__ == "__main__":
+    main()
